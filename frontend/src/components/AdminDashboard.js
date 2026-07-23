@@ -1,0 +1,346 @@
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
+import { getProductImage } from '../services/productImage';
+
+export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Edit / Create State
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
+  const [currentProduct, setCurrentProduct] = useState({
+    name: '',
+    category: '',
+    description: '',
+    price: 0,
+    stock: 0,
+    imageUrl: ''
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [productsRes, ordersRes] = await Promise.all([
+        api.get('/api/products'),
+        api.get('/api/orders').catch(e => ({ data: [] })) // Handle if order api fails
+      ]);
+      setProducts(productsRes.data || []);
+      setOrders(ordersRes.data || []);
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalProducts = products.length;
+  const lowStockProducts = products.filter(p => p.stock < 3);
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+
+  const filteredProducts = products.filter(p => 
+    p.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleOpenModal = (mode, product = null) => {
+    setModalMode(mode);
+    if (mode === 'edit' && product) {
+      setCurrentProduct({
+        _id: product._id,
+        name: product.name || '',
+        category: product.category || '',
+        description: product.description || '',
+        price: product.price || 0,
+        stock: product.stock || 0,
+        imageUrl: product.imageUrl || product.image || ''
+      });
+    } else {
+      setCurrentProduct({
+        name: '',
+        category: '',
+        description: '',
+        price: 0,
+        stock: 0,
+        imageUrl: ''
+      });
+    }
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setCurrentProduct(null);
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentProduct(prev => ({
+      ...prev,
+      [name]: name === 'price' || name === 'stock' ? Number(value) : value
+    }));
+  };
+
+  const handleSaveProduct = async (e) => {
+    e.preventDefault();
+    try {
+      if (modalMode === 'create') {
+        await api.post('/api/products', currentProduct);
+      } else {
+        const { _id, ...updateData } = currentProduct;
+        await api.put(`/api/products/${_id}`, updateData);
+      }
+      handleCloseModal();
+      fetchData(); // Refresh data
+    } catch (error) {
+      console.error('Error saving product:', error);
+      alert('Failed to save product');
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    try {
+      await api.delete(`/api/products/${id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Failed to delete product');
+    }
+  };
+
+  if (loading) {
+    return <div className="admin-loading">Loading Admin Dashboard...</div>;
+  }
+
+  return (
+    <div className="admin-container">
+      <div className="admin-sidebar">
+        <h2>Admin Panel</h2>
+        <ul>
+          <li className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>
+            Analytics
+          </li>
+          <li className={activeTab === 'products' ? 'active' : ''} onClick={() => setActiveTab('products')}>
+            Products
+          </li>
+          <li className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>
+            Orders
+          </li>
+        </ul>
+      </div>
+
+      <div className="admin-content">
+        {activeTab === 'overview' && (
+          <div className="admin-tab-content">
+            <h2>Analytics Dashboard</h2>
+            <div className="analytics-cards">
+              <div className="analytics-card">
+                <h3>Total Revenue</h3>
+                <p className="val">${totalRevenue.toFixed(2)}</p>
+              </div>
+              <div className="analytics-card">
+                <h3>Total Orders</h3>
+                <p className="val">{totalOrders}</p>
+              </div>
+              <div className="analytics-card">
+                <h3>Total Products</h3>
+                <p className="val">{totalProducts}</p>
+              </div>
+              <div className="analytics-card danger">
+                <h3>Low Stock</h3>
+                <p className="val">{lowStockProducts.length}</p>
+              </div>
+            </div>
+
+            <div className="low-stock-section">
+              <h3>Low Stock Items (Action Required)</h3>
+              {lowStockProducts.length > 0 ? (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Image</th>
+                      <th>Name</th>
+                      <th>Current Stock</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lowStockProducts.map(p => (
+                      <tr key={p._id}>
+                        <td>
+                          <img src={getProductImage(p)} alt={p.name} className="admin-tbl-img" />
+                        </td>
+                        <td>{p.name}</td>
+                        <td style={{ color: 'var(--error)', fontWeight: 'bold' }}>{p.stock}</td>
+                        <td>
+                          <button className="btn-small" onClick={() => { setActiveTab('products'); handleOpenModal('edit', p); }}>Update</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No low stock items currently.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'products' && (
+          <div className="admin-tab-content">
+            <div className="admin-header-flex">
+              <h2>Manage Products</h2>
+              <button className="btn-primary" onClick={() => handleOpenModal('create')}>+ Add Product</button>
+            </div>
+            
+            <div className="admin-search">
+              <input 
+                type="text" 
+                placeholder="Search products by name..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="admin-search-input"
+              />
+            </div>
+
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.map(p => (
+                  <tr key={p._id}>
+                    <td>
+                      <img src={getProductImage(p)} alt={p.name} className="admin-tbl-img" />
+                    </td>
+                    <td>{p.name}</td>
+                    <td>${p.price}</td>
+                    <td>
+                      <span className={p.stock < 3 ? 'stock-low' : 'stock-ok'}>{p.stock}</span>
+                    </td>
+                    <td>
+                      <button className="btn-small edit" onClick={() => handleOpenModal('edit', p)}>Edit</button>
+                      <button className="btn-small delete" onClick={() => handleDeleteProduct(p._id)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+                {filteredProducts.length === 0 && (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center' }}>No products found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="admin-tab-content">
+            <h2>All Placed Orders</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="admin-table orders-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>User ID</th>
+                    <th>Product ID</th>
+                    <th>Qty</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map(o => (
+                    <tr key={o._id}>
+                      <td className="mono">{o._id}</td>
+                      <td className="mono">{o.userId}</td>
+                      <td className="mono">{o.productId}</td>
+                      <td>{o.quantity}</td>
+                      <td>${o.totalPrice}</td>
+                      <td>
+                        <span className={`status-badge ${o.status?.toLowerCase() || 'pending'}`}>
+                          {o.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td>{new Date(o.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {orders.length === 0 && (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center' }}>No orders found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <h3>{modalMode === 'create' ? 'Create New Product' : 'Edit Product'}</h3>
+            <form onSubmit={handleSaveProduct}>
+              <div className="form-group">
+                <label>Name</label>
+                <input type="text" name="name" value={currentProduct.name} onChange={handleChange} required />
+              </div>
+              <div className="form-group">
+                <label>Category</label>
+                <select name="category" value={currentProduct.category} onChange={handleChange} required className="admin-search-input" style={{padding: '10px 12px'}}>
+                  <option value="">Select Category</option>
+                  <option value="Outerwear">Outerwear</option>
+                  <option value="Knitwear">Knitwear</option>
+                  <option value="Accessories">Accessories</option>
+                  <option value="Footwear">Footwear</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea name="description" value={currentProduct.description} onChange={handleChange} required rows={3} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Price ($)</label>
+                  <input type="number" step="0.01" name="price" value={currentProduct.price} onChange={handleChange} required />
+                </div>
+                <div className="form-group">
+                  <label>Stock</label>
+                  <input type="number" name="stock" value={currentProduct.stock} onChange={handleChange} required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Image URL</label>
+                <input type="text" name="imageUrl" value={currentProduct.imageUrl} onChange={handleChange} placeholder="https://..." />
+              </div>
+              
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancel</button>
+                <button type="submit" className="btn-primary">Save Product</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

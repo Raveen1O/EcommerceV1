@@ -6,17 +6,22 @@ const {
     decreaseProduct,
     getUserCart,
     removeCartItem,
-    checkout
+    checkout,
+    clearUserCart
 } = require('../controllers/cartController');
 
-router.post('/add', addProduct);
+const { verifyToken } = require('../middleware/auth');
 
-router.patch('/decrease', decreaseProduct);
+// Protected routes: require valid Cognito JWT. Middleware attaches `req.user`.
+router.post('/add', verifyToken, addProduct);
 
-router.get('/user/:userId', getUserCart);
+router.patch('/decrease', verifyToken, decreaseProduct);
 
-router.delete('/:cartItemId', removeCartItem);
+router.get('/user/:userId', verifyToken, getUserCart);
 
-router.post('/checkout/:userId', checkout);
+router.delete('/:cartItemId', verifyToken, removeCartItem);
+
+router.post('/checkout/:userId', verifyToken, checkout);
+router.delete('/user/:userId', verifyToken, clearUserCart);
 
 module.exports = router;

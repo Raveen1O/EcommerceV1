@@ -1,4 +1,7 @@
 const express = require('express');
+const { verifyToken } = require('../../middleware/authMiddleware');
+const { verifyAdmin } = require('../../middleware/adminMiddleware');
+const { verifyService } = require('../../middleware/serviceMiddleware');
 const router = express.Router();
 
 const {
@@ -15,8 +18,15 @@ router.get('/', getOrders);
 
 router.get('/:id', getOrderById);
 
-router.put('/:id', updateOrder);
+router.put('/:id',
+    verifyService,
+    updateOrder
+);
 
-router.delete('/:id', deleteOrder);
+router.put('/:id',
+    verifyToken,
+    verifyAdmin,
+    updateOrder
+);
 
 module.exports = router;

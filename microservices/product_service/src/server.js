@@ -14,7 +14,17 @@ const app = express();
 
 connectDB();
 
-app.use(cors());
+// CORS configuration
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Handle preflight requests
+
+
 app.use(express.json());
 
 app.use('/api/products', require('./routes/productRoutes'));

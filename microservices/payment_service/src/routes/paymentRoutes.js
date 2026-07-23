@@ -7,6 +7,7 @@ const {
 } = require('../controllers/paymentController');
 
 router.post('/', processPayment);
+router.post('/confirm', processPayment);
 
 router.get('/', getPayments);
 

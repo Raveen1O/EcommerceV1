@@ -6,6 +6,8 @@ exports.addToCart = async (req, res) => {
 
     try {
 
+        // If middleware attached user, prefer Cognito sub as userId
+        if(req.user && req.user.sub) req.body.userId = req.user.sub;
         const cartItem = await Cart.create(req.body);
 
         res.status(201).json(cartItem);
@@ -98,19 +100,19 @@ exports.removeCartItem = async (req, res) => {
 
     try {
 
-        const item = await Cart.findByIdAndDelete(
-            req.params.cartItemId
-        );
-
-        if (!item) {
-            return res.status(404).json({
-                message: 'Cart item not found'
-            });
+        const item = await Cart.findById(req.params.cartItemId);
+        if(!item){
+            return res.status(404).json({ message: 'Cart item not found' });
         }
 
-        res.json({
-            message: 'Item removed successfully'
-        });
+        // only owner may delete
+        if(req.user && req.user.sub && item.userId !== req.user.sub){
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        await Cart.findByIdAndDelete(req.params.cartItemId);
+
+        res.json({ message: 'Item removed successfully' });
 
     } catch (error) {
 
@@ -118,73 +120,146 @@ exports.removeCartItem = async (req, res) => {
             error: error.message
         });
 
+    }
+};
+
+exports.clearUserCart = async (req, res) => {
+    try {
+        const userId = (req.user && req.user.sub) || req.params.userId;
+        if (!userId) {
+            return res.status(400).json({ message: 'User ID is required' });
+        }
+
+        if (req.user && req.user.sub && userId !== req.user.sub) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        await Cart.deleteMany({ userId });
+
+        res.json({ message: 'Cart cleared successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 exports.checkout = async (req, res) => {
 
     try {
 
-        const userId = req.params.userId;
+        console.log("========== CHECKOUT STARTED ==========");
+
+        // Prefer authenticated user id (Cognito sub) if available
+        const userId = (req.user && req.user.sub) || req.params.userId;
+
+        console.log("User ID:", userId);
 
         const cartItems = await Cart.find({ userId });
+
+        console.log("Cart Items:", JSON.stringify(cartItems));
 
         if (cartItems.length === 0) {
 
             return res.status(400).json({
-                message: 'Cart is empty'
+                message: "Cart is empty"
             });
+
         }
 
         let totalPrice = 0;
 
+        // include incoming auth header when calling downstream services
+        const forwardHeaders = {};
+        if(req.headers && (req.headers.authorization || req.headers.Authorization)){
+            forwardHeaders.Authorization = req.headers.authorization || req.headers.Authorization;
+        }
+
         for (const item of cartItems) {
 
-            const productResponse = await axios.get(
-                `http://localhost:5000/api/products/${item.productId}`
-            );
+            const productUrl =
+                `${process.env.API_BASE_URL}api/products/${item.productId}`;
+
+            console.log("Fetching Product:", productUrl);
+
+            const productResponse = await axios.get(productUrl, { headers: forwardHeaders });
+
+            console.log("Product Response:", productResponse.data);
 
             const product = productResponse.data;
 
             totalPrice += product.price * item.quantity;
         }
 
+        console.log("Calculated Total:", totalPrice);
+
         const firstItem = cartItems[0];
 
+        const orderUrl =
+            `${process.env.API_BASE_URL}api/orders`;
+
+        console.log("Creating Order at:", orderUrl);
+
+        console.log("Order Payload:", {
+            productId: firstItem.productId,
+            quantity: firstItem.quantity,
+            totalPrice,
+            status: "Pending",
+            userId
+        });
+
         const orderResponse = await axios.post(
-            'http://localhost:5001/api/orders',
+            orderUrl,
             {
                 productId: firstItem.productId,
                 quantity: firstItem.quantity,
                 totalPrice,
-                status: 'Pending'
-            }
+                status: "Pending",
+                userId
+            },
+            { headers: forwardHeaders }
         );
 
-        await Cart.deleteMany({
-            userId
-        });
+        console.log("Order Created:", orderResponse.data);
 
-        res.status(201).json({
-            message: 'Checkout successful',
+        return res.status(201).json({
+            message: "Checkout successful",
             order: orderResponse.data
         });
 
     } catch (error) {
 
-        res.status(500).json({
-            error: error.message
+        console.error("========== CHECKOUT FAILED ==========");
+
+        console.error("Error Message:", error.message);
+
+        console.error("Request URL:", error.config?.url);
+
+        console.error("Request Method:", error.config?.method);
+
+        console.error("Request Body:", error.config?.data);
+
+        console.error("Axios Status:", error.response?.status);
+
+        console.error("Axios Response:", error.response?.data);
+
+        console.error("Stack:", error.stack);
+
+        return res.status(500).json({
+            message: error.message,
+            requestUrl: error.config?.url,
+            requestMethod: error.config?.method,
+            requestBody: error.config?.data,
+            axiosStatus: error.response?.status,
+            axiosResponse: error.response?.data
         });
 
     }
 };
 exports.addProduct = async (req, res) => {
     try {
-        const { userId, productId } = req.body;
+        // Use authenticated user when possible
+        const userId = (req.user && req.user.sub) || req.body.userId;
+        const { productId } = req.body;
 
-        let item = await Cart.findOne({
-            userId,
-            productId
-        });
+        let item = await Cart.findOne({ userId, productId });
 
         if (item) {
             item.quantity += 1;
@@ -192,11 +267,7 @@ exports.addProduct = async (req, res) => {
             return res.json(item);
         }
 
-        item = await Cart.create({
-            userId,
-            productId,
-            quantity: 1
-        });
+        item = await Cart.create({ userId, productId, quantity: 1 });
 
         res.status(201).json(item);
 
@@ -208,12 +279,10 @@ exports.addProduct = async (req, res) => {
 };
 exports.decreaseProduct = async (req, res) => {
     try {
-        const { userId, productId } = req.body;
+        const userId = (req.user && req.user.sub) || req.body.userId;
+        const { productId } = req.body;
 
-        const item = await Cart.findOne({
-            userId,
-            productId
-        });
+        const item = await Cart.findOne({ userId, productId });
 
         if (!item) {
             return res.status(404).json({
@@ -244,17 +313,28 @@ exports.decreaseProduct = async (req, res) => {
 exports.getUserCart = async (req, res) => {
     try {
 
-        const items = await Cart.find({
-            userId: req.params.userId
-        });
+        // Prefer authenticated user; prevent accessing another user's cart
+        const tokenUser = req.user && req.user.sub;
+        const paramUser = req.params.userId;
+        if(tokenUser && paramUser && tokenUser !== paramUser){
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        const userId = tokenUser || paramUser;
+
+        const items = await Cart.find({ userId });
 
         res.json(items);
 
     } catch (error) {
 
+        console.error('Checkout Error:', error);
+
         res.status(500).json({
-            error: error.message
-        });
+        message: error.message,
+        axiosStatus: error.response?.status,
+        axiosResponse: error.response?.data
+});
 
     }
 };
