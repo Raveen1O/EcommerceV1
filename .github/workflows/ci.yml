@@ -1,0 +1,43 @@
+name: CI Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [
+          'cart_service',
+          'order_service',
+          'payment_service',
+          'product_service',
+          'Inventory_service',
+          'Notification_service'
+        ]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24' # Using Node 24 for the native node:test runner
+
+      - name: Install Dependencies
+        working-directory: ./microservices/${{ matrix.service }}
+        run: npm install
+
+      - name: Run Tests
+        working-directory: ./microservices/${{ matrix.service }}
+        run: node --test
