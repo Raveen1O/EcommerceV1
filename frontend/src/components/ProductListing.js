@@ -21,34 +21,41 @@ export default function ProductListing() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
 
+  const searchQuery = searchParams.get('search') || '';
+  const sortParam = searchParams.get('sort') || '';
+
   useEffect(() => {
     setLoading(true);
-    api.get('/api/products')
+    let url = '/api/products?';
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    if (rawCategory && rawCategory !== 'All') params.append('category', rawCategory);
+    if (sortParam) params.append('sort', sortParam);
+    
+    api.get(`/api/products?${params.toString()}`)
       .then(res => setProducts(res.data || []))
       .catch(() => setError('Failed to load products.'))
       .finally(() => setLoading(false));
-  }, []);
-
-  const searchQuery = searchParams.get('search') || '';
-
-  /* Client-side filter by category query param and search */
-  let filtered = activeCategory === 'All'
-    ? products
-    : products.filter(p => {
-        const cat = (p.category || '').toLowerCase();
-        return cat === activeCategory.toLowerCase();
-      });
-      
-  if (searchQuery) {
-    filtered = filtered.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()));
-  }
+  }, [searchQuery, rawCategory, sortParam]);
 
   const handleCategory = (cat) => {
+    const params = new URLSearchParams(searchParams);
     if (cat === 'All') {
-      setSearchParams({});
+      params.delete('category');
     } else {
-      setSearchParams({ category: cat.toLowerCase() });
+      params.set('category', cat.toLowerCase());
     }
+    setSearchParams(params);
+  };
+
+  const handleSort = (e) => {
+    const params = new URLSearchParams(searchParams);
+    if (e.target.value) {
+      params.set('sort', e.target.value);
+    } else {
+      params.delete('sort');
+    }
+    setSearchParams(params);
   };
 
   return (
@@ -86,7 +93,15 @@ export default function ProductListing() {
             </button>
           ))}
           <div className="filter-count">
-            {loading ? '...' : `${filtered.length} pieces`}
+            {loading ? '...' : `${products.length} pieces`}
+            <select value={sortParam} onChange={handleSort} style={{ marginLeft: '16px', padding: '4px 8px' }}>
+              <option value="">Sort By</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="newest">Newest</option>
+              <option value="alpha-asc">Alphabetical: A-Z</option>
+              <option value="alpha-desc">Alphabetical: Z-A</option>
+            </select>
           </div>
         </div>
 
@@ -99,19 +114,12 @@ export default function ProductListing() {
           <div className="error-text" style={{ padding: '40px 0' }}>{error}</div>
         ) : (
           <div className="listing-grid">
-            {filtered.length === 0 ? (
-              /* Empty state with placeholders */
-              Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="listing-card skeleton-card">
-                  <div className="listing-card-img skeleton-img" />
-                  <div className="listing-card-info">
-                    <div className="skeleton-line" style={{ width: '70%' }} />
-                    <div className="skeleton-line" style={{ width: '40%', marginTop: '8px' }} />
-                  </div>
-                </div>
-              ))
+            {products.length === 0 ? (
+              <div style={{ padding: '40px 0', gridColumn: '1 / -1', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                No products found in this category.
+              </div>
             ) : (
-              filtered.map(product => {
+              products.map(product => {
                 const imageUrl = getProductImage(product);
                 return (
                   <Link

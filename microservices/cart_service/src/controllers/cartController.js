@@ -167,7 +167,9 @@ exports.checkout = async (req, res) => {
         let totalPrice = 0;
 
         // include incoming auth header when calling downstream services
-        const forwardHeaders = {};
+        const forwardHeaders = {
+            "x-service-secret": process.env.SERVICE_SECRET || "default_service_secret_123"
+        };
         if(req.headers && (req.headers.authorization || req.headers.Authorization)){
             forwardHeaders.Authorization = req.headers.authorization || req.headers.Authorization;
         }

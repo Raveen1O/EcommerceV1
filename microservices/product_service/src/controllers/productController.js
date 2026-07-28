@@ -16,7 +16,29 @@ exports.createProduct = async (req, res) => {
 // GET ALL
 exports.getProducts = async (req, res) => {
     try {
-        const products = await Product.find();
+        const { search, category, sort } = req.query;
+        let query = {};
+
+        if (search) {
+            query.name = { $regex: search, $options: 'i' };
+        }
+
+        if (category) {
+            query.category = { $regex: `^${category}$`, $options: 'i' };
+        }
+
+        let sortOption = {};
+        if (sort === 'price-asc') sortOption.price = 1;
+        else if (sort === 'price-desc') sortOption.price = -1;
+        else if (sort === 'newest') sortOption._id = -1;
+        else if (sort === 'alpha-asc') sortOption.name = 1;
+        else if (sort === 'alpha-desc') sortOption.name = -1;
+
+        const productsQuery = Product.find(query);
+        if (Object.keys(sortOption).length > 0) {
+            productsQuery.sort(sortOption);
+        }
+        const products = await productsQuery;
 
         res.json(products);
     } catch (err) {

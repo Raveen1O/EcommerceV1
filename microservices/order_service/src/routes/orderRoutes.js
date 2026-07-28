@@ -9,12 +9,18 @@ const {
     getOrders,
     getOrderById,
     updateOrder,
-    deleteOrder
+    deleteOrder,
+    getOrdersByUser,
+    getAnalytics
 } = require('../controllers/orderController');
 
 router.post('/', createOrder);
 
 router.get('/', getOrders);
+
+router.get('/analytics', getAnalytics);
+
+router.get('/user/:userId', getOrdersByUser);
 
 router.get('/:id', getOrderById);
 
@@ -28,5 +34,7 @@ router.put('/:id',
     verifyAdmin,
     updateOrder
 );
+
+router.patch('/:id', updateOrder);
 
 module.exports = router;

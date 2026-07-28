@@ -33,15 +33,17 @@ exports.processPayment = async (req, res) => {
             });
         }
 
+        const baseUrl = process.env.API_BASE_URL || 'https://jw0yvet0t5.execute-api.ap-southeast-1.amazonaws.com/';
+
         // GET ORDER
 
         console.log(
             'Fetching Order:',
-            `${process.env.API_BASE_URL}api/orders/${orderId}`
+            `${baseUrl}api/orders/${orderId}`
         );
 
         const orderResponse = await axios.get(
-            `${process.env.API_BASE_URL}api/orders/${orderId}`
+            `${baseUrl}api/orders/${orderId}`
         );
 
         console.log('Order Response:', orderResponse.data);
@@ -58,11 +60,11 @@ exports.processPayment = async (req, res) => {
 
         console.log(
             'Fetching Product:',
-            `${process.env.API_BASE_URL}api/products/${order.productId}`
+            `${baseUrl}api/products/${order.productId}`
         );
 
         const productResponse = await axios.get(
-            `${process.env.API_BASE_URL}api/products/${order.productId}`
+            `${baseUrl}api/products/${order.productId}`
         );
 
         console.log('Product Response:', productResponse.data);
@@ -75,7 +77,9 @@ exports.processPayment = async (req, res) => {
             });
         }
 
-        const forwardHeaders = {};
+        const forwardHeaders = {
+            "x-service-secret": process.env.SERVICE_SECRET || "default_service_secret_123"
+        };
         if (req.headers && (req.headers.authorization || req.headers.Authorization)) {
             forwardHeaders.Authorization = req.headers.authorization || req.headers.Authorization;
         }
@@ -112,7 +116,7 @@ exports.processPayment = async (req, res) => {
         console.log('Before Order Update');
 
         const orderUpdateResponse = await axios.patch(
-            `${process.env.API_BASE_URL}api/orders/${order._id}`,
+            `${baseUrl}api/orders/${order._id}`,
             { status: 'Paid' },
             { headers: forwardHeaders }
         );
@@ -136,7 +140,7 @@ exports.processPayment = async (req, res) => {
         console.log('Clearing cart for user:', order.userId);
 
         const cartClearResponse = await axios.delete(
-            `${process.env.API_BASE_URL}api/cart/user/${order.userId}`,
+            `${baseUrl}api/cart/user/${order.userId}`,
             { headers: forwardHeaders }
         );
 
@@ -147,30 +151,39 @@ exports.processPayment = async (req, res) => {
         console.log('Before SNS Publish');
         console.log('Topic ARN:', process.env.PAYMENT_TOPIC_ARN);
 
-        const snsResponse = await snsClient.send(
-            new PublishCommand({
-                TopicArn: process.env.PAYMENT_TOPIC_ARN,
-                Subject: 'PaymentSucceeded',
-                Message: JSON.stringify({
-                    eventType: 'PaymentSucceeded',
-                    orderId: order._id,
-                    productId: product._id,
-                    quantity: order.quantity,
-                    amount: order.totalPrice,
-                    paymentId: payment._id,
-                    customerEmail: email,
-                    customerName: fullName
-                })
-            })
-        );
+        let snsMessageId = null;
+        let snsPublished = false;
 
-        console.log('After SNS Publish');
-        console.log('SNS Response:', snsResponse);
+        try {
+            const snsResponse = await snsClient.send(
+                new PublishCommand({
+                    TopicArn: process.env.PAYMENT_TOPIC_ARN,
+                    Subject: 'PaymentSucceeded',
+                    Message: JSON.stringify({
+                        eventType: 'PaymentSucceeded',
+                        orderId: order._id,
+                        productId: product._id,
+                        quantity: order.quantity,
+                        amount: order.totalPrice,
+                        paymentId: payment._id,
+                        customerEmail: email,
+                        customerName: fullName
+                    })
+                })
+            );
+            snsMessageId = snsResponse.MessageId;
+            snsPublished = true;
+            console.log('After SNS Publish');
+            console.log('SNS Response:', snsResponse);
+        } catch (snsErr) {
+            console.error('SNS Publish failed:', snsErr);
+            // We do not throw here, so the payment still succeeds even if SNS is misconfigured locally
+        }
 
         return res.status(201).json({
             payment,
-            snsPublished: true,
-            messageId: snsResponse.MessageId,
+            snsPublished,
+            messageId: snsMessageId,
             customerEmail: email
         });
 

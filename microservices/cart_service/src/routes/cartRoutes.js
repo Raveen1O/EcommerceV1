@@ -10,7 +10,7 @@ const {
     clearUserCart
 } = require('../controllers/cartController');
 
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken } = require('../../middleware/authMiddleware');
 
 // Protected routes: require valid Cognito JWT. Middleware attaches `req.user`.
 router.post('/add', verifyToken, addProduct);

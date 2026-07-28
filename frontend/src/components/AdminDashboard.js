@@ -7,6 +7,7 @@ export default function AdminDashboard() {
   
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Search state
@@ -31,12 +32,14 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [productsRes, ordersRes] = await Promise.all([
+      const [productsRes, ordersRes, analyticsRes] = await Promise.all([
         api.get('/api/products'),
-        api.get('/api/orders').catch(e => ({ data: [] })) // Handle if order api fails
+        api.get('/api/orders').catch(e => ({ data: [] })),
+        api.get('/api/orders/analytics').catch(e => ({ data: null }))
       ]);
       setProducts(productsRes.data || []);
       setOrders(ordersRes.data || []);
+      setAnalytics(analyticsRes.data || null);
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
@@ -44,13 +47,15 @@ export default function AdminDashboard() {
     }
   };
 
-  const totalProducts = products.length;
-  const lowStockProducts = products.filter(p => p.stock < 3);
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
-
   const filteredProducts = products.filter(p => 
     p.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+
+  const filteredOrders = orders.filter(o => 
+    o._id?.toLowerCase().includes(orderSearchQuery.toLowerCase()) || 
+    o.userId?.toLowerCase().includes(orderSearchQuery.toLowerCase())
   );
 
   const handleOpenModal = (mode, product = null) => {
@@ -144,56 +149,90 @@ export default function AdminDashboard() {
         {activeTab === 'overview' && (
           <div className="admin-tab-content">
             <h2>Analytics Dashboard</h2>
-            <div className="analytics-cards">
-              <div className="analytics-card">
-                <h3>Total Revenue</h3>
-                <p className="val">${totalRevenue.toFixed(2)}</p>
-              </div>
-              <div className="analytics-card">
-                <h3>Total Orders</h3>
-                <p className="val">{totalOrders}</p>
-              </div>
-              <div className="analytics-card">
-                <h3>Total Products</h3>
-                <p className="val">{totalProducts}</p>
-              </div>
-              <div className="analytics-card danger">
-                <h3>Low Stock</h3>
-                <p className="val">{lowStockProducts.length}</p>
-              </div>
-            </div>
+            {analytics ? (
+              <>
+                <div className="analytics-cards">
+                  <div className="analytics-card">
+                    <h3>Total Revenue</h3>
+                    <p className="val">${(analytics.totalRevenue || 0).toFixed(2)}</p>
+                  </div>
+                  <div className="analytics-card">
+                    <h3>Total Orders</h3>
+                    <p className="val">{analytics.totalOrders || 0}</p>
+                  </div>
+                  <div className="analytics-card">
+                    <h3>Avg Order Value</h3>
+                    <p className="val">${(analytics.averageOrderValue || 0).toFixed(2)}</p>
+                  </div>
+                  <div className="analytics-card danger">
+                    <h3>Low Stock</h3>
+                    <p className="val">{analytics.lowStockCount || 0}</p>
+                  </div>
+                </div>
 
-            <div className="low-stock-section">
-              <h3>Low Stock Items (Action Required)</h3>
-              {lowStockProducts.length > 0 ? (
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Image</th>
-                      <th>Name</th>
-                      <th>Current Stock</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lowStockProducts.map(p => (
-                      <tr key={p._id}>
-                        <td>
-                          <img src={getProductImage(p)} alt={p.name} className="admin-tbl-img" />
-                        </td>
-                        <td>{p.name}</td>
-                        <td style={{ color: 'var(--error)', fontWeight: 'bold' }}>{p.stock}</td>
-                        <td>
-                          <button className="btn-small" onClick={() => { setActiveTab('products'); handleOpenModal('edit', p); }}>Update</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p>No low stock items currently.</p>
-              )}
-            </div>
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginTop: '32px' }}>
+                  {/* Top Selling Products */}
+                  <div className="analytics-section" style={{ flex: 1, minWidth: '300px', background: 'var(--bg-secondary)', padding: '24px', borderRadius: '4px' }}>
+                    <h3>Top Selling Products</h3>
+                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                      {(analytics.topSellingProducts || []).map((item, i) => (
+                        <li key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eaeaea', padding: '12px 0' }}>
+                          <span>{item.product?.name || 'Unknown'}</span>
+                          <strong>{item.quantitySold} sold</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Category Sales */}
+                  <div className="analytics-section" style={{ flex: 1, minWidth: '300px', background: 'var(--bg-secondary)', padding: '24px', borderRadius: '4px' }}>
+                    <h3>Category Sales</h3>
+                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                      {Object.entries(analytics.categorySales || {}).map(([cat, amount], i) => (
+                        <li key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eaeaea', padding: '12px 0' }}>
+                          <span>{cat}</span>
+                          <strong>${amount.toFixed(2)}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="low-stock-section" style={{ marginTop: '32px' }}>
+                  <h3>Low Stock Items (Action Required)</h3>
+                  {analytics.lowStockProducts?.length > 0 ? (
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Image</th>
+                          <th>Name</th>
+                          <th>Current Stock</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {analytics.lowStockProducts.map(p => (
+                          <tr key={p._id}>
+                            <td>
+                              <img src={getProductImage(p)} alt={p.name} className="admin-tbl-img" />
+                            </td>
+                            <td>{p.name}</td>
+                            <td style={{ color: 'var(--error)', fontWeight: 'bold' }}>{p.stock}</td>
+                            <td>
+                              <button className="btn-small" onClick={() => { setActiveTab('products'); handleOpenModal('edit', p); }}>Update</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p>No low stock items currently.</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p>Failed to load analytics.</p>
+            )}
           </div>
         )}
 
@@ -253,7 +292,20 @@ export default function AdminDashboard() {
 
         {activeTab === 'orders' && (
           <div className="admin-tab-content">
-            <h2>All Placed Orders</h2>
+            <div className="admin-header-flex">
+              <h2>All Placed Orders</h2>
+            </div>
+            
+            <div className="admin-search">
+              <input 
+                type="text" 
+                placeholder="Search orders by Order ID or User ID..." 
+                value={orderSearchQuery}
+                onChange={(e) => setOrderSearchQuery(e.target.value)}
+                className="admin-search-input"
+              />
+            </div>
+
             <div style={{ overflowX: 'auto' }}>
               <table className="admin-table orders-table">
                 <thead>
@@ -268,7 +320,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map(o => (
+                  {filteredOrders.map(o => (
                     <tr key={o._id}>
                       <td className="mono">{o._id}</td>
                       <td className="mono">{o.userId}</td>
@@ -283,7 +335,7 @@ export default function AdminDashboard() {
                       <td>{new Date(o.createdAt).toLocaleString()}</td>
                     </tr>
                   ))}
-                  {orders.length === 0 && (
+                  {filteredOrders.length === 0 && (
                     <tr>
                       <td colSpan="7" style={{ textAlign: 'center' }}>No orders found.</td>
                     </tr>

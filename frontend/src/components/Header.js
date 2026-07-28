@@ -23,6 +23,7 @@ export default function Header(){
           if (email) {
             setUserName(email.split('@')[0]);
           }
+          fetchCartCount();
         }
       } catch (err) {
         console.error("Auth check failed", err);
@@ -30,6 +31,12 @@ export default function Header(){
     };
     checkAuth();
     
+    // Listen for cart updates
+    const handleCartUpdate = () => {
+      if (isLoggedIn()) fetchCartCount();
+    };
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
     // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -37,12 +44,36 @@ export default function Header(){
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, []);
 
+  const [cartCount, setCartCount] = useState(0);
+
+  const fetchCartCount = async () => {
+    try {
+      const { getUserId } = require('../services/auth');
+      const api = require('../services/api').default;
+      const userId = getUserId();
+      if (userId) {
+        const res = await api.get(`/api/cart/user/${userId}`);
+        const count = (res.data || []).reduce((sum, item) => sum + item.quantity, 0);
+        setCartCount(count);
+      }
+    } catch (err) {
+      console.error("Failed to fetch cart count", err);
+    }
+  };
+
   const handleSearch = (e) => {
-    if (e.key === 'Enter' && search.trim()) {
-      navigate(`/products?search=${encodeURIComponent(search.trim())}`);
+    if (e.key === 'Enter') {
+      if (search.trim()) {
+        navigate(`/products?search=${encodeURIComponent(search.trim())}`);
+      } else {
+        navigate(`/products`);
+      }
       setSearch('');
     }
   };
@@ -105,6 +136,12 @@ export default function Header(){
               <div style={{ fontWeight: '600', marginBottom: '16px', fontSize: '14px', textTransform: 'capitalize' }}>
                 Hello, {userName}
               </div>
+              <Link to="/orders" onClick={() => setDropdownOpen(false)} style={{ display: 'block', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textDecoration: 'none', color: 'black', marginBottom: '16px' }}>
+                ORDER HISTORY
+              </Link>
+              <Link to="/wishlist" onClick={() => setDropdownOpen(false)} style={{ display: 'block', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textDecoration: 'none', color: 'black', marginBottom: '16px' }}>
+                WISHLIST
+              </Link>
               <button 
                 onClick={handleSignOut}
                 style={{
@@ -119,8 +156,17 @@ export default function Header(){
           )}
         </div>
 
-        <Link to="/cart" className="icon-link">
+        <Link to="/cart" className="icon-link" style={{ position: 'relative' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          {cartCount > 0 && (
+            <span style={{
+              position: 'absolute', top: '-6px', right: '-8px', background: 'var(--black)', color: 'white',
+              fontSize: '10px', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              {cartCount}
+            </span>
+          )}
         </Link>
       </div>
     </header>

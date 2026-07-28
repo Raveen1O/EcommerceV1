@@ -32,6 +32,9 @@ export default function ProductDetail() {
   const [cartLoading, setCartLoading]   = useState(false);
   const [cartMessage, setCartMessage]   = useState(null); // { type: 'success'|'error', text }
 
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [wishlistMessage, setWishlistMessage] = useState(null);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     setLoading(true);
@@ -63,6 +66,7 @@ export default function ProductDetail() {
         productId: product._id,
         quantity,
       });
+      window.dispatchEvent(new Event('cartUpdated'));
       setCartMessage({ type: 'success', text: `"${product.name}" has been added to your bag!` });
       // Auto-clear success after 4 seconds
       setTimeout(() => setCartMessage(null), 4000);
@@ -72,6 +76,30 @@ export default function ProductDetail() {
       setTimeout(() => setCartMessage(null), 4000);
     } finally {
       setCartLoading(false);
+    }
+  };
+
+  const addToWishlist = async () => {
+    if (!getUserId()) {
+      navigate('/login');
+      return;
+    }
+    setWishlistLoading(true);
+    setWishlistMessage(null);
+    try {
+      await api.post('/api/wishlist/add', {
+        userId: getUserId(),
+        productId: product._id
+      });
+      window.dispatchEvent(new Event('wishlistUpdated'));
+      setWishlistMessage({ type: 'success', text: `"${product.name}" added to wishlist!` });
+      setTimeout(() => setWishlistMessage(null), 4000);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Could not add to wishlist.';
+      setWishlistMessage({ type: 'error', text: msg });
+      setTimeout(() => setWishlistMessage(null), 4000);
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -260,7 +288,14 @@ export default function ProductDetail() {
             </button>
 
             {/* Wishlist */}
-            <button className="btn-wishlist">WISHLIST</button>
+            <button className="btn-wishlist" onClick={addToWishlist} disabled={wishlistLoading}>
+              {wishlistLoading ? 'SAVING...' : 'WISHLIST'}
+            </button>
+            {wishlistMessage && (
+              <div style={{ marginTop: '8px', fontSize: '12px', color: wishlistMessage.type === 'error' ? 'var(--error)' : 'var(--success)' }}>
+                {wishlistMessage.text}
+              </div>
+            )}
 
             {/* Description accordion */}
             <div className="product-desc-section border-top">

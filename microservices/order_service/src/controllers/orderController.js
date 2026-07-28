@@ -28,6 +28,92 @@ exports.getOrders = async (req, res) => {
     }
 };
 
+// GET BY USER ID
+exports.getOrdersByUser = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({
+            error: error.message
+        });
+    }
+};
+
+// GET ANALYTICS
+exports.getAnalytics = async (req, res) => {
+    try {
+        const orders = await Order.find();
+        let products = [];
+        try {
+            const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000/';
+            const productRes = await fetch(`${baseUrl}api/products`);
+            if (productRes.ok) {
+                products = await productRes.json();
+            }
+        } catch (err) {
+            console.error('Failed to fetch products for analytics');
+        }
+
+        if (!Array.isArray(products)) products = [];
+
+        const productsMap = {};
+        products.forEach(p => { productsMap[p._id] = p; });
+
+        let totalRevenue = 0;
+        let totalOrders = orders.length;
+        let revenueTrends = {};
+        let ordersPerDay = {};
+        let productSales = {};
+        let categorySales = {};
+
+        orders.forEach(order => {
+            totalRevenue += order.totalPrice || 0;
+            
+            const orderDate = order.createdAt || order.updatedAt || new Date();
+            const date = new Date(orderDate).toISOString().split('T')[0];
+            revenueTrends[date] = (revenueTrends[date] || 0) + (order.totalPrice || 0);
+            ordersPerDay[date] = (ordersPerDay[date] || 0) + 1;
+
+            const pid = order.productId;
+            productSales[pid] = (productSales[pid] || 0) + order.quantity;
+
+            const product = productsMap[pid];
+            if (product) {
+                const cat = product.category || 'Unknown';
+                categorySales[cat] = (categorySales[cat] || 0) + (order.totalPrice || 0);
+            }
+        });
+
+        const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        const lowStockProducts = products.filter(p => p.stock < 3);
+
+        const topSellingProducts = Object.keys(productSales)
+            .map(pid => ({
+                product: productsMap[pid] || { name: 'Unknown' },
+                quantitySold: productSales[pid]
+            }))
+            .sort((a, b) => b.quantitySold - a.quantitySold)
+            .slice(0, 5);
+
+        res.json({
+            totalRevenue,
+            totalOrders,
+            averageOrderValue,
+            revenueTrends,
+            ordersPerDay,
+            topSellingProducts,
+            categorySales,
+            lowStockCount: lowStockProducts.length,
+            lowStockProducts
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 // GET BY ID
 exports.getOrderById = async (req, res) => {
     try {
