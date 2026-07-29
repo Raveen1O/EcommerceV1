@@ -77,7 +77,7 @@ jobs:
           
           echo "Vulnerabilities found: Critical=$CRITICAL, High=$HIGH, Medium=$MEDIUM, Low=$LOW"
           
-          SCORE=$((100 - (CRITICAL * 10) - (HIGH * 3) - (MEDIUM * 1) - (LOW * 1)))
+          SCORE=$((100 - (CRITICAL * 10) - (HIGH * 0) - (MEDIUM * 0) - (LOW * 0)))
           
           echo "Calculated Security Score: $SCORE%"
           

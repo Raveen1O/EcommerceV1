@@ -9,5 +9,8 @@
   },
   "devDependencies": {
     "serverless": "^4.38.1"
+  },
+  "overrides": {
+    "axios": "^1.18.1"
   }
 }

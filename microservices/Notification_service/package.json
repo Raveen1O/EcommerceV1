@@ -17,5 +17,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.8.0"
+  },
+  "overrides": {
+    "axios": "^1.18.1"
   }
 }
