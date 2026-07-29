@@ -13,7 +13,7 @@
   "type": "commonjs",
   "dependencies": {
     "aws-sdk": "^2.1691.0",
-    "axios": "1.16.0"
+    "axios": "^1.18.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
