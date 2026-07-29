@@ -41,3 +41,24 @@ jobs:
       - name: Run Tests
         working-directory: ./microservices/${{ matrix.service }}
         run: node --test
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Snyk to scan for vulnerable dependencies
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects
+
+      - name: Run Snyk to scan code for security issues
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: code test
+          args: --all-projects
