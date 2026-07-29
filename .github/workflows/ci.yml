@@ -38,6 +38,10 @@ jobs:
         working-directory: ./microservices/${{ matrix.service }}
         run: npm install
 
+      - name: Run Linter
+        working-directory: ./microservices/${{ matrix.service }}
+        run: npm run lint
+
       - name: Run Tests
         working-directory: ./microservices/${{ matrix.service }}
         run: node --test
