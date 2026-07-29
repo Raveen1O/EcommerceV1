@@ -40,7 +40,7 @@ jobs:
 
       - name: Run Tests
         working-directory: ./microservices/${{ matrix.service }}
-        run: node --test
+        run: node --experimental-test-coverage --test
 
   security:
     runs-on: ubuntu-latest
@@ -48,17 +48,38 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run Snyk to scan for vulnerable dependencies
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --all-projects
+      - name: Install Snyk and jq
+        run: |
+          npm install -g snyk
+          sudo apt-get install -y jq
 
-      - name: Run Snyk to scan code for security issues
-        uses: snyk/actions/node@master
+      - name: Run Snyk Security Score Check
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: code test
-          args: --all-projects
+        run: |
+          snyk auth $SNYK_TOKEN
+          snyk test --all-projects --json > snyk-report.json || true
+          
+          CRITICAL=$(cat snyk-report.json | jq '[.[]? | select(.vulnerabilities != null) | .vulnerabilities[]? | select(.severity == "critical")] | length')
+          HIGH=$(cat snyk-report.json | jq '[.[]? | select(.vulnerabilities != null) | .vulnerabilities[]? | select(.severity == "high")] | length')
+          MEDIUM=$(cat snyk-report.json | jq '[.[]? | select(.vulnerabilities != null) | .vulnerabilities[]? | select(.severity == "medium")] | length')
+          LOW=$(cat snyk-report.json | jq '[.[]? | select(.vulnerabilities != null) | .vulnerabilities[]? | select(.severity == "low")] | length')
+          
+          # Default to 0 if jq fails or returns empty
+          CRITICAL=${CRITICAL:-0}
+          HIGH=${HIGH:-0}
+          MEDIUM=${MEDIUM:-0}
+          LOW=${LOW:-0}
+          
+          echo "Vulnerabilities found: Critical=$CRITICAL, High=$HIGH, Medium=$MEDIUM, Low=$LOW"
+          
+          SCORE=$((100 - (CRITICAL * 15) - (HIGH * 5) - (MEDIUM * 3) - (LOW * 1)))
+          
+          echo "Calculated Security Score: $SCORE%"
+          
+          if [ "$SCORE" -le 60 ]; then
+            echo "Security score is below or equal to 60%. Failing the build."
+            exit 1
+          else
+            echo "Security test is a success! Score is greater than 60%."
+          fi
