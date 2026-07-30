@@ -87,3 +87,48 @@ jobs:
           else
             echo "Security test is a success! Score is greater than 60%."
           fi
+
+  deploy:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: cart_service
+            function_name: raveen-cart_service_v2
+          - service: order_service
+            function_name: raveen-order_service_v2
+          - service: payment_service
+            function_name: raveen-payment_service_v2
+          - service: product_service
+            function_name: raveen-product_service_v2
+          - service: Inventory_service
+            function_name: Inventory_consumer-raveen_v2
+          - service: Notification_service
+            function_name: email-consumer-raveen_v2
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Dependencies
+        working-directory: ./microservices/${{ matrix.service }}
+        run: npm install
+
+      - name: Zip Microservice
+        working-directory: ./microservices/${{ matrix.service }}
+        run: zip -r ../${{ matrix.service }}.zip .
+
+      - name: Deploy to AWS Lambda
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ matrix.function_name }} \
+            --zip-file fileb://microservices/${{ matrix.service }}.zip
