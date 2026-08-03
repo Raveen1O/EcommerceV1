@@ -11,7 +11,7 @@ on:
       - master
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     strategy:
@@ -42,7 +42,25 @@ jobs:
         working-directory: ./microservices/${{ matrix.service }}
         run: node --experimental-test-coverage --test
 
-  security:
+  sast_testing:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      - name: Run Snyk SAST Scan
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk auth $SNYK_TOKEN
+          snyk code test || true
+
+  dependency_testing:
+    needs: [sast_testing]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -60,8 +78,6 @@ jobs:
           snyk auth $SNYK_TOKEN
           # Print the detailed human-readable output first (dependencies)
           snyk test --all-projects || true
-          # Scan microservices source code (SAST)
-          snyk code test || true
           
           # Generate JSON for the score calculation
           snyk test --all-projects --json > snyk-report.json || true
@@ -91,7 +107,7 @@ jobs:
           fi
 
   deploy:
-    needs: [test, security]
+    needs: [dependency_testing]
     runs-on: ubuntu-latest
     strategy:
       matrix:
