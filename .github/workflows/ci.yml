@@ -38,12 +38,40 @@ jobs:
         working-directory: ./microservices/${{ matrix.service }}
         run: npm install
 
+  unit_test:
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [
+          'cart_service',
+          'order_service',
+          'payment_service',
+          'product_service',
+          'Inventory_service',
+          'Notification_service'
+        ]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Dependencies
+        working-directory: ./microservices/${{ matrix.service }}
+        run: npm install
+
       - name: Run Tests
         working-directory: ./microservices/${{ matrix.service }}
         run: node --experimental-test-coverage --test
 
   sast_testing:
-    needs: [build]
+    needs: [unit_test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -59,7 +87,7 @@ jobs:
           snyk auth $SNYK_TOKEN
           snyk code test || true
 
-  dependency_testing:
+  sca:
     needs: [sast_testing]
     runs-on: ubuntu-latest
     steps:
@@ -107,7 +135,7 @@ jobs:
           fi
 
   deploy:
-    needs: [dependency_testing]
+    needs: [sca]
     runs-on: ubuntu-latest
     strategy:
       matrix:
