@@ -58,8 +58,10 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           snyk auth $SNYK_TOKEN
-          # Print the detailed human-readable output first
+          # Print the detailed human-readable output first (dependencies)
           snyk test --all-projects || true
+          # Scan microservices source code (SAST)
+          snyk code test || true
           
           # Generate JSON for the score calculation
           snyk test --all-projects --json > snyk-report.json || true
