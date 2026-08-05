@@ -7,6 +7,10 @@ const mockSend = mock.fn(async () => ({ MessageId: 'msg123' }));
 const mockSNS = {
     SNSClient: class {
         send = mockSend;
+        middlewareStack = {
+            remove: mock.fn(),
+            use: mock.fn()
+        };
     },
     PublishCommand: class {}
 };
