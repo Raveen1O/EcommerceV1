@@ -1,12 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getProductImage } from '../services/productImage';
 
 export default function ProductCard({product}){
+  const navigate = useNavigate();
   const imageUrl = getProductImage(product);
   const inStock = product.stock == null || product.stock > 0;
   
   return (
-    <div className="minimal-card">
+    <div className="minimal-card" onClick={() => navigate(`/product/${product._id}`)} style={{ cursor: 'pointer' }}>
       <div className="minimal-card-img">
          {imageUrl ? (
            <img src={imageUrl} alt={product.name} />
