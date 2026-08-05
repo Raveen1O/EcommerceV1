@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Auth } from 'aws-amplify';
 import { isLoggedIn, getEmail } from '../services/auth';
 
 export default function Header(){
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -48,7 +49,7 @@ export default function Header(){
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener('cartUpdated', handleCartUpdate);
     };
-  }, []);
+  }, [location.pathname]);
 
   const [cartCount, setCartCount] = useState(0);
 
@@ -92,10 +93,8 @@ export default function Header(){
   };
 
   const toggleDropdown = (e) => {
-    if (loggedIn) {
-      e.preventDefault();
-      setDropdownOpen(!dropdownOpen);
-    }
+    e.preventDefault();
+    setDropdownOpen(!dropdownOpen);
   };
 
   return (
@@ -132,31 +131,60 @@ export default function Header(){
           </div>
         )}
         <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
-          <Link to={loggedIn ? "#" : "/login"} className="icon-link" onClick={toggleDropdown}>
+          <Link to="#" className="icon-link" onClick={toggleDropdown}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </Link>
           
-          {loggedIn && dropdownOpen && (
+          {dropdownOpen && (
             <div className="user-dropdown" style={{
               position: 'absolute', top: '100%', right: 0, marginTop: '8px',
               background: '#fff', border: '1px solid #eaeaea', borderRadius: '4px',
               padding: '16px', minWidth: '150px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
               zIndex: 1000
             }}>
-              <div style={{ fontWeight: '600', marginBottom: '16px', fontSize: '14px', textTransform: 'capitalize' }}>
-                Hello, {userName}
-              </div>
-
-              <button 
-                onClick={handleSignOut}
-                style={{
-                  width: '100%', padding: '8px', background: 'var(--black)',
-                  color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px',
-                  fontSize: '12px', fontWeight: '600', letterSpacing: '1px'
-                }}
-              >
-                SIGN OUT
-              </button>
+              {loggedIn ? (
+                <>
+                  <div style={{ fontWeight: '600', marginBottom: '16px', fontSize: '14px', textTransform: 'capitalize' }}>
+                    Hello, {userName}
+                  </div>
+                  <button 
+                    onClick={handleSignOut}
+                    style={{
+                      width: '100%', padding: '8px', background: 'var(--black)',
+                      color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px',
+                      fontSize: '12px', fontWeight: '600', letterSpacing: '1px'
+                    }}
+                  >
+                    SIGN OUT
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontWeight: '600', marginBottom: '16px', fontSize: '14px' }}>
+                    Welcome to Lumina
+                  </div>
+                  <button 
+                    onClick={() => { setDropdownOpen(false); navigate('/login'); }}
+                    style={{
+                      width: '100%', padding: '8px', background: 'var(--black)',
+                      color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px',
+                      fontSize: '12px', fontWeight: '600', letterSpacing: '1px', marginBottom: '8px'
+                    }}
+                  >
+                    LOG IN
+                  </button>
+                  <button 
+                    onClick={() => { setDropdownOpen(false); navigate('/register'); }}
+                    style={{
+                      width: '100%', padding: '8px', background: 'transparent',
+                      color: 'var(--black)', border: '1px solid var(--black)', cursor: 'pointer', borderRadius: '4px',
+                      fontSize: '12px', fontWeight: '600', letterSpacing: '1px'
+                    }}
+                  >
+                    REGISTER
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
