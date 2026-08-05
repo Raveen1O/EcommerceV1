@@ -1,5 +1,5 @@
 exports.verifyService = (req, res, next) => {
-
+    console.log("verifyService called");
     const secret = req.headers["x-service-secret"];
 
     if (!secret) {

@@ -24,7 +24,7 @@ exports.getProducts = async (req, res) => {
         }
 
         if (category) {
-            query.category = { $regex: `^${category}$`, $options: 'i' };
+            query.category = { $regex: new RegExp(`^${category}$`, 'i') };
         }
 
         let sortOption = {};

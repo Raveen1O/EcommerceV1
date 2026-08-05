@@ -22,7 +22,6 @@ export default function Products(){
                <div style={{fontSize:'10px', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'4px'}}>CURATION</div>
                <h2>Browse by Category</h2>
             </div>
-            <a href="#" style={{fontSize:'12px', textDecoration:'underline'}}>View Size Guide</a>
          </div>
 
          <div className="cat-grid">
@@ -61,7 +60,7 @@ export default function Products(){
             <h2>Design as a Dialogue.</h2>
             <p>At LUMINA, we believe clothing should be an extension of the self. Each piece is a result of obsessive precision—balancing the soft curves of the human form with the sharp lines of modern architecture.</p>
             <p style={{fontStyle:'italic', color:'var(--text-secondary)'}}>"Luxury is not about excess. It's about the space between what is necessary and what is profound."</p>
-            <a href="#" className="learn-more">LEARN ABOUT OUR CRAFT</a>
+            <Link to="/craft" className="learn-more">LEARN ABOUT OUR CRAFT</Link>
          </div>
          <div className="editorial-images">
             <div className="ed-img ed-img-1"></div>
@@ -69,14 +68,7 @@ export default function Products(){
          </div>
       </div>
 
-      <div className="newsletter-section">
-         <h2>INNER CIRCLE</h2>
-         <p>Receive early access to seasonal collections and private events.</p>
-         <div className="newsletter-form">
-            <input type="email" placeholder="ENTER YOUR EMAIL" />
-            <button>JOIN</button>
-         </div>
-      </div>
+
 
       <footer className="footer" style={{marginTop:0, paddingTop:'60px', borderTop:'none'}}>
          <div className="footer-cols container">

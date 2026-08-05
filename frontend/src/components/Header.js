@@ -121,6 +121,16 @@ export default function Header(){
           />
         </div>
         
+        {loggedIn && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginRight: '16px' }}>
+            <Link to="/orders" style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textDecoration: 'none', color: 'var(--black, black)' }}>
+              ORDERS
+            </Link>
+            <Link to="/wishlist" style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textDecoration: 'none', color: 'var(--black, black)' }}>
+              WISHLIST
+            </Link>
+          </div>
+        )}
         <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
           <Link to={loggedIn ? "#" : "/login"} className="icon-link" onClick={toggleDropdown}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -136,12 +146,7 @@ export default function Header(){
               <div style={{ fontWeight: '600', marginBottom: '16px', fontSize: '14px', textTransform: 'capitalize' }}>
                 Hello, {userName}
               </div>
-              <Link to="/orders" onClick={() => setDropdownOpen(false)} style={{ display: 'block', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textDecoration: 'none', color: 'black', marginBottom: '16px' }}>
-                ORDER HISTORY
-              </Link>
-              <Link to="/wishlist" onClick={() => setDropdownOpen(false)} style={{ display: 'block', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textDecoration: 'none', color: 'black', marginBottom: '16px' }}>
-                WISHLIST
-              </Link>
+
               <button 
                 onClick={handleSignOut}
                 style={{

@@ -48,8 +48,7 @@ exports.getAnalytics = async (req, res) => {
         const orders = await Order.find();
         let products = [];
         try {
-            const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000/';
-            const productRes = await fetch(`${baseUrl}api/products`);
+            const productRes = await fetch(`${process.env.API_BASE_URL}api/products`);
             if (productRes.ok) {
                 products = await productRes.json();
             }
@@ -72,8 +71,7 @@ exports.getAnalytics = async (req, res) => {
         orders.forEach(order => {
             totalRevenue += order.totalPrice || 0;
             
-            const orderDate = order.createdAt || order.updatedAt || new Date();
-            const date = new Date(orderDate).toISOString().split('T')[0];
+            const date = new Date(order.createdAt).toISOString().split('T')[0];
             revenueTrends[date] = (revenueTrends[date] || 0) + (order.totalPrice || 0);
             ordersPerDay[date] = (ordersPerDay[date] || 0) + 1;
 

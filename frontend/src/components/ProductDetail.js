@@ -159,22 +159,7 @@ export default function ProductDetail() {
                 <div className="img-placeholder" style={{ aspectRatio: '4/5' }} />
               )}
             </div>
-            <div className="hero-image-thumbs">
-              <div className="thumb">
-                {imageUrl ? (
-                  <img src={imageUrl} alt={`${product.name} detail`} style={{ filter: 'brightness(0.85)' }} />
-                ) : (
-                  <div className="img-placeholder" style={{ aspectRatio: '4/5' }} />
-                )}
-              </div>
-              <div className="thumb">
-                {imageUrl ? (
-                  <img src={imageUrl} alt={`${product.name} back`} style={{ filter: 'brightness(0.7) contrast(1.1)' }} />
-                ) : (
-                  <div className="img-placeholder" style={{ aspectRatio: '4/5' }} />
-                )}
-              </div>
-            </div>
+
           </div>
 
           {/* RIGHT — Details */}
@@ -231,9 +216,6 @@ export default function ProductDetail() {
             <div className="size-selector">
               <div className="opt-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>SIZE — {selectedSize}</span>
-                <a href="#" style={{ fontSize: '10px', fontWeight: 400, textTransform: 'none', color: 'var(--text-secondary)', letterSpacing: 0 }}>
-                  Size Guide
-                </a>
               </div>
               <div className="sizes">
                 {SIZES.map(s => (
@@ -248,15 +230,7 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Quantity */}
-            <div style={{ marginBottom: '24px' }}>
-              <div className="opt-label">QUANTITY</div>
-              <div className="qty-control" style={{ display: 'inline-flex' }}>
-                <button className="qty-btn" onClick={() => setQuantity(q => Math.max(1, q - 1))}>−</button>
-                <span className="qty-val">{quantity}</span>
-                <button className="qty-btn" onClick={() => setQuantity(q => q + 1)}>+</button>
-              </div>
-            </div>
+
 
             {/* Cart feedback message */}
             {cartMessage && (

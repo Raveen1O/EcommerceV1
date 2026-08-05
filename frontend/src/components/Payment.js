@@ -117,7 +117,6 @@ export default function Payment() {
              <h3>3. Payment Details</h3>
              <div className="payment-methods">
                <button className={`pm-btn ${paymentMethod==='credit'?'active':''}`} onClick={()=>setPaymentMethod('credit')}>CREDIT CARD</button>
-               <button className={`pm-btn ${paymentMethod==='paypal'?'active':''}`} onClick={()=>setPaymentMethod('paypal')}>PAYPAL</button>
              </div>
              
              {paymentMethod === 'credit' && (

@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { getProductImage } from '../services/productImage';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -184,17 +193,31 @@ export default function AdminDashboard() {
                     </ul>
                   </div>
 
-                  {/* Category Sales */}
-                  <div className="analytics-section" style={{ flex: 1, minWidth: '300px', background: 'var(--bg-secondary)', padding: '24px', borderRadius: '4px' }}>
-                    <h3>Category Sales</h3>
-                    <ul style={{ listStyle: 'none', padding: 0 }}>
-                      {Object.entries(analytics.categorySales || {}).map(([cat, amount], i) => (
-                        <li key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eaeaea', padding: '12px 0' }}>
-                          <span>{cat}</span>
-                          <strong>${amount.toFixed(2)}</strong>
-                        </li>
-                      ))}
-                    </ul>
+                  {/* Category Sales Graph */}
+                  <div className="analytics-section" style={{ flex: 1, minWidth: '400px', background: 'var(--bg-secondary)', padding: '24px', borderRadius: '4px' }}>
+                    <h3 style={{ marginBottom: '16px' }}>Category Revenue</h3>
+                    {Object.keys(analytics.categorySales || {}).length > 0 ? (
+                      <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={Object.entries(analytics.categorySales || {}).map(([cat, amount]) => ({ name: cat, Revenue: amount }))}
+                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eaeaea" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} tickFormatter={(val) => `$${val}`} />
+                            <Tooltip
+                              cursor={{ fill: 'transparent' }}
+                              contentStyle={{ borderRadius: '4px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                              formatter={(value) => [`$${value.toFixed(2)}`, 'Revenue']}
+                            />
+                            <Bar dataKey="Revenue" fill="#1a1a2e" radius={[4, 4, 0, 0]} barSize={40} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <p>No sales data available.</p>
+                    )}
                   </div>
                 </div>
 

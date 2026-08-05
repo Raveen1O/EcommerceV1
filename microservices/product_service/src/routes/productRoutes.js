@@ -3,6 +3,7 @@ const router = express.Router();
 const { verifyToken } = require('../../middleware/authMiddleware');
 const { verifyAdmin } = require('../../middleware/adminMiddleware');
 const { verifyService } = require('../../middleware/serviceMiddleware');
+const {authOrService} = require('../../middleware/authOrService')
 const {
     createProduct,
     getProducts,
@@ -19,12 +20,12 @@ router.get('/', getProducts);
 router.get('/:id', getProductById);
 
 router.put('/:id',
-    verifyToken,
-    verifyAdmin,
+    authOrService,
     updateProduct
 );
 
 router.delete('/:id',
-    verifyService, deleteProduct);
+    verifyToken,
+    verifyAdmin, deleteProduct);
 
 module.exports = router;

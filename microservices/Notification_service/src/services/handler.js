@@ -1,4 +1,4 @@
-const { sendPaymentSuccessEmail } = require('./services/emailService');
+const { sendPaymentSuccessEmail } = require('./emailService');
 
 exports.handler = async (event) => {
 

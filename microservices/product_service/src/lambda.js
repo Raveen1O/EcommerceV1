@@ -7,10 +7,16 @@ const serverless = require('serverless-http');
 const express = require('express');
 const cors = require('cors');
 
+const AWSXRay = require('aws-xray-sdk');
+AWSXRay.captureHTTPsGlobal(require('http'));
+AWSXRay.captureHTTPsGlobal(require('https'));
+
 const connectDB = require('./config/db');
 const productRoutes = require('./routes/productRoutes');
 
 const app = express();
+
+app.use(AWSXRay.express.openSegment('ProductService'));
 
 // Enable CORS so API Gateway responses include Access-Control-Allow-* headers
 app.use(cors({
@@ -24,5 +30,7 @@ app.use(express.json());
 connectDB();
 
 app.use('/api/products', productRoutes);
+
+app.use(AWSXRay.express.closeSegment());
 
 module.exports.handler = serverless(app);

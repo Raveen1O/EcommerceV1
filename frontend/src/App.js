@@ -16,6 +16,7 @@ import AdminDashboard from "./components/AdminDashboard";
 import AdminRoute from "./components/AdminRoute";
 import OrderHistory from './components/OrderHistory';
 import Wishlist from './components/Wishlist';
+import Craft from './components/Craft';
 
 Amplify.configure(awsConfig);
 
@@ -33,6 +34,7 @@ export default function App(){
           <Route path="/order-status" element={<OrderStatus />} />
           <Route path="/orders" element={<OrderHistory />} />
           <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/craft" element={<Craft />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/confirm" element={<ConfirmRegistration />} />

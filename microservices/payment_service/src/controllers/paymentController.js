@@ -5,11 +5,12 @@ const {
     SNSClient,
     PublishCommand
 } = require('@aws-sdk/client-sns');
+const AWSXRay = require('aws-xray-sdk');
 console.log('PAYMENT_TOPIC_ARN =', process.env.PAYMENT_TOPIC_ARN);
 console.log('AWS_REGION =', process.env.AWS_REGION);
-const snsClient = new SNSClient({
+const snsClient = AWSXRay.captureAWSv3Client(new SNSClient({
     region: process.env.AWS_REGION || 'ap-southeast-1'
-});
+}));
 
 exports.processPayment = async (req, res) => {
 
@@ -78,7 +79,7 @@ exports.processPayment = async (req, res) => {
         }
 
         const forwardHeaders = {
-            "x-service-secret": process.env.SERVICE_SECRET || "default_service_secret_123"
+            "x-service-secret": process.env.SERVICE_SECRET
         };
         if (req.headers && (req.headers.authorization || req.headers.Authorization)) {
             forwardHeaders.Authorization = req.headers.authorization || req.headers.Authorization;

@@ -1,21 +1,20 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-
     service: 'gmail',
-
     auth: {
-
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-
     }
-
 });
 
 exports.sendPaymentSuccessEmail = async (message) => {
 
-    const recipientEmail = message.customerEmail || process.env.RECIPIENT_EMAIL;
+    const recipientEmail = message.email || message.userEmail || message.customerEmail;;
+
+    if (!recipientEmail) {
+        throw new Error("Recipient email not found in SNS message.");
+    }
 
     const mailOptions = {
 
@@ -26,12 +25,13 @@ exports.sendPaymentSuccessEmail = async (message) => {
         subject: `Order ${message.orderId} Confirmed`,
 
         html: `
-
             <h2>Payment Successful 🎉</h2>
 
-            <p>Hi ${message.customerName || 'Customer'}, your payment has been processed successfully.</p>
+            <p>Hello,</p>
 
-            <table border="1" cellpadding="8">
+            <p>Your payment has been processed successfully.</p>
+
+            <table border="1" cellpadding="8" cellspacing="0">
 
                 <tr>
                     <td><b>Order ID</b></td>
@@ -59,14 +59,13 @@ exports.sendPaymentSuccessEmail = async (message) => {
 
             <p>Thank you for shopping with us.</p>
 
+            <p><b>SwiftCart Team</b></p>
         `
-
     };
 
     const info = await transporter.sendMail(mailOptions);
 
-    console.log("Email Sent Successfully");
-
+    console.log("Email sent successfully.");
+    console.log("Recipient:", recipientEmail);
     console.log(info.response);
-
 };

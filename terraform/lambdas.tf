@@ -1,0 +1,158 @@
+# ==========================================
+# 1. Email Consumer / Notification Service
+# ==========================================
+data "archive_file" "email_consumer_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../microservices/Notification_service"
+  output_path = "${path.module}/build/email-consumer-raveen.zip"
+}
+
+resource "aws_lambda_function" "email_consumer_lambda" {
+  function_name    = "email-consumer-raveen"
+  role             = aws_iam_role.lambda_exec_role.arn
+  handler          = "src/lambda.handler" # Standard handler, adjust if needed
+  runtime          = "nodejs18.x"
+  filename         = data.archive_file.email_consumer_zip.output_path
+  source_code_hash = data.archive_file.email_consumer_zip.output_base64sha256
+
+  environment {
+    variables = {
+      EMAIL_PASS      = "mbwb ebrd qibt utya"
+      EMAIL_USER      = "raveenpbksr2@gmail.com"
+      RECIPIENT_EMAIL = "raveenpbksr2@gmail.com"
+    }
+  }
+}
+
+# ==========================================
+# 2. Product Service
+# ==========================================
+data "archive_file" "product_service_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../microservices/product_service"
+  output_path = "${path.module}/build/raveen-product_service.zip"
+}
+
+resource "aws_lambda_function" "product_service_lambda" {
+  function_name    = "raveen-product_service"
+  role             = aws_iam_role.lambda_exec_role.arn
+  handler          = "src/lambda.handler"
+  runtime          = "nodejs18.x"
+  filename         = data.archive_file.product_service_zip.output_path
+  source_code_hash = data.archive_file.product_service_zip.output_base64sha256
+
+  environment {
+    variables = {
+      API_BASE_URL         = "https://jw0yvet0t5.execute-api.ap-southeast-1.amazonaws.com/"
+      COGNITO_USER_POOL_ID = "ap-southeast-1_cPDXNClGu"
+      MONGO_URI            = "mongodb+srv://raveenpbksr2_db_user:qenAZPvgMo9qUu8H@cluster0.stztn7j.mongodb.net/?appName=Cluster0"
+      SERVICE_SECRET       = "InventoryService2026@IDP!Microservice"
+    }
+  }
+}
+
+# ==========================================
+# 3. Payment Service
+# ==========================================
+data "archive_file" "payment_service_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../microservices/payment_service"
+  output_path = "${path.module}/build/raveen-payment_service.zip"
+}
+
+resource "aws_lambda_function" "payment_service_lambda" {
+  function_name    = "raveen-payment_service"
+  role             = aws_iam_role.lambda_exec_role.arn
+  handler          = "src/lambda.handler"
+  runtime          = "nodejs18.x"
+  filename         = data.archive_file.payment_service_zip.output_path
+  source_code_hash = data.archive_file.payment_service_zip.output_base64sha256
+
+  environment {
+    variables = {
+      API_BASE_URL      = "https://jw0yvet0t5.execute-api.ap-southeast-1.amazonaws.com//"
+      FRONTEND_URL      = "http://localhost:3000"
+      MONGO_URI         = "mongodb+srv://raveenpbksr2_db_user:qenAZPvgMo9qUu8H@cluster0.stztn7j.mongodb.net/?appName=Cluster0"
+      PAYMENT_TOPIC_ARN = "arn:aws:sns:ap-southeast-1:726101441380:payment-topic-raveen"
+      SERVICE_SECRET    = "InventoryService2026@IDP!Microservice"
+    }
+  }
+}
+
+# ==========================================
+# 4. Order Service
+# ==========================================
+data "archive_file" "order_service_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../microservices/order_service"
+  output_path = "${path.module}/build/raveen-order_service.zip"
+}
+
+resource "aws_lambda_function" "order_service_lambda" {
+  function_name    = "raveen-order_service"
+  role             = aws_iam_role.lambda_exec_role.arn
+  handler          = "src/lambda.handler"
+  runtime          = "nodejs18.x"
+  filename         = data.archive_file.order_service_zip.output_path
+  source_code_hash = data.archive_file.order_service_zip.output_base64sha256
+
+  environment {
+    variables = {
+      API_BASE_URL   = "https://jw0yvet0t5.execute-api.ap-southeast-1.amazonaws.com/"
+      MONGO_URI      = "mongodb+srv://raveenpbksr2_db_user:qenAZPvgMo9qUu8H@cluster0.stztn7j.mongodb.net/?appName=Cluster0"
+      SERVICE_SECRET = "InventoryService2026@IDP!Microservice"
+    }
+  }
+}
+
+# ==========================================
+# 5. Inventory Service
+# ==========================================
+data "archive_file" "inventory_service_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../microservices/Inventory_service"
+  output_path = "${path.module}/build/Inventory_consumer-raveen.zip"
+}
+
+resource "aws_lambda_function" "inventory_service_lambda" {
+  function_name    = "Inventory_consumer-raveen"
+  role             = aws_iam_role.lambda_exec_role.arn
+  handler          = "src/lambda.handler"
+  runtime          = "nodejs18.x"
+  filename         = data.archive_file.inventory_service_zip.output_path
+  source_code_hash = data.archive_file.inventory_service_zip.output_base64sha256
+
+  environment {
+    variables = {
+      API_BASE_URL   = "https://jw0yvet0t5.execute-api.ap-southeast-1.amazonaws.com/"
+      MONGO_URI      = "mongodb+srv://raveenpbksr2_db_user:qenAZPvgMo9qUu8H@cluster0.stztn7j.mongodb.net/?appName=Cluster0"
+      SERVICE_SECRET = "InventoryService2026@IDP!Microservice"
+    }
+  }
+}
+
+# ==========================================
+# 6. Cart Service
+# ==========================================
+data "archive_file" "cart_service_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../microservices/cart_service"
+  output_path = "${path.module}/build/raveen-cart_service.zip"
+}
+
+resource "aws_lambda_function" "cart_service_lambda" {
+  function_name    = "raveen-cart_service"
+  role             = aws_iam_role.lambda_exec_role.arn
+  handler          = "src/lambda.handler"
+  runtime          = "nodejs18.x"
+  filename         = data.archive_file.cart_service_zip.output_path
+  source_code_hash = data.archive_file.cart_service_zip.output_base64sha256
+
+  environment {
+    variables = {
+      API_BASE_URL   = "https://jw0yvet0t5.execute-api.ap-southeast-1.amazonaws.com/"
+      MONGO_URI      = "mongodb+srv://raveenpbksr2_db_user:qenAZPvgMo9qUu8H@cluster0.stztn7j.mongodb.net/?appName=Cluster0"
+      SERVICE_SECRET = "InventoryService2026@IDP!Microservice"
+    }
+  }
+}
