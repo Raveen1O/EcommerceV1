@@ -5,6 +5,19 @@ exports.createOrder = async (req, res) => {
     try {
         const order = await Order.create(req.body);
 
+        try {
+            const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
+            const cwClient = new CloudWatchClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+            await cwClient.send(new PutMetricDataCommand({
+                Namespace: 'Lumina/BusinessMetrics',
+                MetricData: [{
+                    MetricName: 'Revenue',
+                    Value: req.body.totalPrice,
+                    Dimensions: [{ Name: 'FunctionName', Value: 'raveen-order_service' }]
+                }]
+            }));
+        } catch(e) { console.error('CW Error', e); }
+
         res.status(201).json(order);
 
     } catch (error) {

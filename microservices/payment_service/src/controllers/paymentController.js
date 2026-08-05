@@ -5,14 +5,33 @@ const {
     SNSClient,
     PublishCommand
 } = require('@aws-sdk/client-sns');
+const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
 const AWSXRay = require('aws-xray-sdk');
 console.log('PAYMENT_TOPIC_ARN =', process.env.PAYMENT_TOPIC_ARN);
 console.log('AWS_REGION =', process.env.AWS_REGION);
 const snsClient = AWSXRay.captureAWSv3Client(new SNSClient({
     region: process.env.AWS_REGION || 'ap-southeast-1'
 }));
+const cwClient = AWSXRay.captureAWSv3Client(new CloudWatchClient({
+    region: process.env.AWS_REGION || 'ap-southeast-1'
+}));
 
-exports.processPayment = async (req, res) => {
+async function emitCheckoutSuccess(value) {
+    try {
+        await cwClient.send(new PutMetricDataCommand({
+            Namespace: 'Lumina/BusinessMetrics',
+            MetricData: [{
+                MetricName: 'CheckoutSuccessRate',
+                Value: value,
+                Dimensions: [{ Name: 'FunctionName', Value: 'raveen-payment_service' }]
+            }]
+        }));
+    } catch (cwErr) {
+        console.error('Failed to emit CW Metric:', cwErr);
+    }
+}
+
+const actualProcessPayment = async (req, res) => {
 
     try {
 
@@ -207,6 +226,21 @@ exports.processPayment = async (req, res) => {
             axiosResponse: error.response?.data,
             stack: error.stack
         });
+    }
+};
+
+exports.processPayment = async (req, res) => {
+    const originalStatus = res.status;
+    let finalStatus = 200;
+    res.status = function(code) {
+        finalStatus = code;
+        return originalStatus.call(res, code);
+    };
+    try {
+        await actualProcessPayment(req, res);
+    } finally {
+        const isSuccess = finalStatus >= 200 && finalStatus < 300;
+        await emitCheckoutSuccess(isSuccess ? 100 : 0);
     }
 };
 

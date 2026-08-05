@@ -12,6 +12,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.1104.0",
     "aws-sdk": "^2.1693.0",
     "aws-xray-sdk": "^3.12.0",
     "axios": "^1.18.1",

@@ -112,6 +112,19 @@ exports.removeCartItem = async (req, res) => {
 
         await Cart.findByIdAndDelete(req.params.cartItemId);
 
+        try {
+            const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
+            const cwClient = new CloudWatchClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+            await cwClient.send(new PutMetricDataCommand({
+                Namespace: 'Lumina/BusinessMetrics',
+                MetricData: [{
+                    MetricName: 'CartAbandonmentRate',
+                    Value: 100,
+                    Dimensions: [{ Name: 'FunctionName', Value: 'raveen-cart_service' }]
+                }]
+            }));
+        } catch(e) { console.error('CW Error', e); }
+
         res.json({ message: 'Item removed successfully' });
 
     } catch (error) {
@@ -135,6 +148,19 @@ exports.clearUserCart = async (req, res) => {
         }
 
         await Cart.deleteMany({ userId });
+
+        try {
+            const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
+            const cwClient = new CloudWatchClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+            await cwClient.send(new PutMetricDataCommand({
+                Namespace: 'Lumina/BusinessMetrics',
+                MetricData: [{
+                    MetricName: 'CartAbandonmentRate',
+                    Value: 100,
+                    Dimensions: [{ Name: 'FunctionName', Value: 'raveen-cart_service' }]
+                }]
+            }));
+        } catch(e) { console.error('CW Error', e); }
 
         res.json({ message: 'Cart cleared successfully' });
     } catch (error) {
@@ -220,6 +246,19 @@ exports.checkout = async (req, res) => {
         );
 
         console.log("Order Created:", orderResponse.data);
+
+        try {
+            const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
+            const cwClient = new CloudWatchClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+            await cwClient.send(new PutMetricDataCommand({
+                Namespace: 'Lumina/BusinessMetrics',
+                MetricData: [{
+                    MetricName: 'CartAbandonmentRate',
+                    Value: 0,
+                    Dimensions: [{ Name: 'FunctionName', Value: 'raveen-cart_service' }]
+                }]
+            }));
+        } catch(e) { console.error('CW Error', e); }
 
         return res.status(201).json({
             message: "Checkout successful",

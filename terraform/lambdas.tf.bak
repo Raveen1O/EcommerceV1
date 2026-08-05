@@ -9,7 +9,7 @@ data "archive_file" "email_consumer_zip" {
 
 resource "aws_lambda_function" "email_consumer_lambda" {
   function_name    = "email-consumer-raveen"
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = data.aws_iam_role.lambda_exec_role.arn
   handler          = "src/lambda.handler" # Standard handler, adjust if needed
   runtime          = "nodejs18.x"
   filename         = data.archive_file.email_consumer_zip.output_path
@@ -35,7 +35,7 @@ data "archive_file" "product_service_zip" {
 
 resource "aws_lambda_function" "product_service_lambda" {
   function_name    = "raveen-product_service"
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = data.aws_iam_role.lambda_exec_role.arn
   handler          = "src/lambda.handler"
   runtime          = "nodejs18.x"
   filename         = data.archive_file.product_service_zip.output_path
@@ -62,7 +62,7 @@ data "archive_file" "payment_service_zip" {
 
 resource "aws_lambda_function" "payment_service_lambda" {
   function_name    = "raveen-payment_service"
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = data.aws_iam_role.lambda_exec_role.arn
   handler          = "src/lambda.handler"
   runtime          = "nodejs18.x"
   filename         = data.archive_file.payment_service_zip.output_path
@@ -90,7 +90,7 @@ data "archive_file" "order_service_zip" {
 
 resource "aws_lambda_function" "order_service_lambda" {
   function_name    = "raveen-order_service"
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = data.aws_iam_role.lambda_exec_role.arn
   handler          = "src/lambda.handler"
   runtime          = "nodejs18.x"
   filename         = data.archive_file.order_service_zip.output_path
@@ -116,7 +116,7 @@ data "archive_file" "inventory_service_zip" {
 
 resource "aws_lambda_function" "inventory_service_lambda" {
   function_name    = "Inventory_consumer-raveen"
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = data.aws_iam_role.lambda_exec_role.arn
   handler          = "src/lambda.handler"
   runtime          = "nodejs18.x"
   filename         = data.archive_file.inventory_service_zip.output_path
@@ -142,7 +142,7 @@ data "archive_file" "cart_service_zip" {
 
 resource "aws_lambda_function" "cart_service_lambda" {
   function_name    = "raveen-cart_service"
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = data.aws_iam_role.lambda_exec_role.arn
   handler          = "src/lambda.handler"
   runtime          = "nodejs18.x"
   filename         = data.archive_file.cart_service_zip.output_path
