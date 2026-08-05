@@ -27,7 +27,7 @@ exports.sendPaymentSuccessEmail = async (message) => {
         html: `
             <h2>Payment Successful 🎉</h2>
 
-            <p>Hello,</p>
+            <p>Hello ${message.customerName || 'Customer'},</p>
 
             <p>Your payment has been processed successfully.</p>
 

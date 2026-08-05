@@ -10,7 +10,7 @@ const mockEmailService = {
 // Monkey-patch require to fix broken paths in Notification_service and mock emailService
 const originalLoad = Module._load;
 Module._load = function(request, parent, isMain) {
-    if (request === './services/emailService') {
+    if (request === './emailService' || request === './services/emailService') {
         return mockEmailService;
     }
     if (request === '../src/handler') {
