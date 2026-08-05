@@ -13,164 +13,107 @@ on:
       - traces
 
 jobs:
-  build:
+  changes:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        service: [
-          'cart_service',
-          'order_service',
-          'payment_service',
-          'product_service',
-          'Inventory_service',
-          'Notification_service'
-        ]
-
+    outputs:
+      services: ${{ steps.detect.outputs.services }}
+      frontend: ${{ steps.detect.outputs.frontend }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      - name: Detect Changes
+        id: detect
+        run: |
+          SERVICES="[]"
+          FRONTEND="false"
+          
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD || git ls-files)
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -q "^frontend/"; then
+            FRONTEND="true"
+          fi
+          
+          CHANGED_SERVICES=$(echo "$CHANGED_FILES" | grep "^microservices/" | cut -d'/' -f2 | sort -u)
+          
+          if [ -n "$CHANGED_SERVICES" ]; then
+            SERVICES=$(echo "$CHANGED_SERVICES" | jq -R -s -c 'split("\n")[:-1]')
+          fi
+          
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "frontend=$FRONTEND" >> $GITHUB_OUTPUT
+
+  build:
+    needs: changes
+    if: ${{ needs.changes.outputs.services != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24' # Using Node 24 for the native node:test runner
-
+          node-version: '24'
       - name: Install Dependencies
         working-directory: ./microservices/${{ matrix.service }}
         run: npm install
 
   unit_test:
-    needs: [build]
+    needs: [changes, build]
+    if: |
+      always() && 
+      needs.changes.outputs.services != '[]' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        service: [
-          'cart_service',
-          'order_service',
-          'payment_service',
-          'product_service',
-          'Inventory_service',
-          'Notification_service'
-        ]
-
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-
       - name: Install Dependencies
         working-directory: ./microservices/${{ matrix.service }}
         run: npm install
-
       - name: Run Tests
         working-directory: ./microservices/${{ matrix.service }}
         run: node --experimental-test-coverage --test
 
-#  sast_testing:
-#    needs: [unit_test]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout Repository
-#        uses: actions/checkout@v4
-#
-#      - name: Install Snyk
-#        run: npm install -g snyk
-#
-#      - name: Run Snyk SAST Scan
-#        env:
-#          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-#        run: |
-#          snyk auth $SNYK_TOKEN
-#          snyk code test || true
-#
-#  sca:
-#    needs: [sast_testing]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout Repository
-#        uses: actions/checkout@v4
-#
-#      - name: Install Snyk and jq
-#        run: |
-#          npm install -g snyk
-#          sudo apt-get install -y jq
-#
-#      - name: Run Snyk Security Score Check
-#        env:
-#          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-#        run: |
-#          snyk auth $SNYK_TOKEN
-#          # Print the detailed human-readable output first (dependencies)
-#          snyk test --all-projects || true
-#          
-#          # Generate JSON for the score calculation
-#          snyk test --all-projects --json > snyk-report.json || true
-#          
-#          CRITICAL=$(cat snyk-report.json | jq '[.[]? | select(.vulnerabilities != null) | .vulnerabilities[]? | select(.severity == "critical")] | length')
-#          HIGH=$(cat snyk-report.json | jq '[.[]? | select(.vulnerabilities != null) | .vulnerabilities[]? | select(.severity == "high")] | length')
-#          MEDIUM=$(cat snyk-report.json | jq '[.[]? | select(.vulnerabilities != null) | .vulnerabilities[]? | select(.severity == "medium")] | length')
-#          LOW=$(cat snyk-report.json | jq '[.[]? | select(.vulnerabilities != null) | .vulnerabilities[]? | select(.severity == "low")] | length')
-#          
-#          # Default to 0 if jq fails or returns empty
-#          CRITICAL=${CRITICAL:-0}
-#          HIGH=${HIGH:-0}
-#          MEDIUM=${MEDIUM:-0}
-#          LOW=${LOW:-0}
-#          
-#          echo "Vulnerabilities found: Critical=$CRITICAL, High=$HIGH, Medium=$MEDIUM, Low=$LOW"
-#          
-#          SCORE=$((100 - (CRITICAL * 10) - (HIGH * 0) - (MEDIUM * 0) - (LOW * 0)))
-#          
-#          echo "Calculated Security Score: $SCORE%"
-#          
-#          if [ "$SCORE" -le 60 ]; then
-#            echo "Security score is below or equal to 60%. Failing the build."
-#            exit 1
-#          else
-#            echo "Security test is a success! Score is greater than 60%."
-#          fi
-#
   deploy:
-    needs: [unit_test]
+    needs: [changes, unit_test]
+    if: |
+      always() && 
+      needs.changes.outputs.services != '[]' &&
+      (needs.unit_test.result == 'success' || needs.unit_test.result == 'skipped')
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - service: cart_service
-            function_name: raveen-cart_service
-          - service: order_service
-            function_name: raveen-order_service
-          - service: payment_service
-            function_name: raveen-payment_service
-          - service: product_service
-            function_name: raveen-product_service
-          - service: Inventory_service
-            function_name: Inventory_consumer-raveen
-          - service: Notification_service
-            function_name: email-consumer-raveen
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-
       - name: Install Dependencies
         working-directory: ./microservices/${{ matrix.service }}
         run: npm install
-
       - name: Zip Microservice
         working-directory: ./microservices/${{ matrix.service }}
         run: zip -r ../${{ matrix.service }}.zip .
-
       - name: Deploy to AWS Lambda
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -178,30 +121,40 @@ jobs:
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
+          case "${{ matrix.service }}" in
+            cart_service) FN="raveen-cart_service" ;;
+            order_service) FN="raveen-order_service" ;;
+            payment_service) FN="raveen-payment_service" ;;
+            product_service) FN="raveen-product_service" ;;
+            Inventory_service) FN="Inventory_consumer-raveen" ;;
+            Notification_service) FN="email-consumer-raveen" ;;
+            *) FN="raveen-${{ matrix.service }}" ;;
+          esac
+          
           aws lambda update-function-code \
-            --function-name ${{ matrix.function_name }} \
+            --function-name $FN \
             --zip-file fileb://microservices/${{ matrix.service }}.zip
 
   deploy_frontend:
-    needs: [unit_test]
+    needs: [changes, unit_test]
+    if: |
+      always() && 
+      needs.changes.outputs.frontend == 'true' &&
+      (needs.unit_test.result == 'success' || needs.unit_test.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-
       - name: Install Frontend Dependencies
         working-directory: ./frontend
         run: npm install
-
       - name: Build Frontend
         working-directory: ./frontend
         run: npm run build
-
       - name: Deploy to S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
