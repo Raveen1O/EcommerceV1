@@ -2,6 +2,16 @@ const { test, mock } = require('node:test');
 const assert = require('node:assert');
 const Module = require('node:module');
 
+// Mock @aws-sdk/client-cloudwatch
+const mockCWSend = mock.fn(async () => ({}));
+const mockCloudWatch = {
+    CloudWatchClient: class {
+        send = mockCWSend;
+        middlewareStack = { remove: mock.fn(), use: mock.fn() };
+    },
+    PutMetricDataCommand: class {}
+};
+
 // Mock @aws-sdk/client-sns
 const mockSend = mock.fn(async () => ({ MessageId: 'msg123' }));
 const mockSNS = {
@@ -19,6 +29,9 @@ const originalLoad = Module._load;
 Module._load = function(request, parent, isMain) {
     if (request === '@aws-sdk/client-sns') {
         return mockSNS;
+    }
+    if (request === '@aws-sdk/client-cloudwatch') {
+        return mockCloudWatch;
     }
     return originalLoad.apply(this, arguments);
 };
