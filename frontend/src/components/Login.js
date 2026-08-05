@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Auth } from 'aws-amplify';
 import { useNavigate, Link } from 'react-router-dom';
-import { isLoggedIn } from '../services/auth';
+import { isLoggedIn, getEmail } from '../services/auth';
 
 export default function Login() {
     const [username, setUsername] = useState("");
@@ -12,7 +12,12 @@ export default function Login() {
 
     useEffect(() => {
         if (isLoggedIn()) {
-            navigate("/");
+            const email = getEmail();
+            if (email === "221701046@rajalakshmi.edu.in") {
+                navigate("/admin");
+            } else {
+                navigate("/");
+            }
         }
     }, [navigate]);
 
@@ -25,7 +30,11 @@ export default function Login() {
             const session = await Auth.currentSession();
             localStorage.setItem("accessToken", session.getAccessToken().getJwtToken());
             localStorage.setItem("idToken", session.getIdToken().getJwtToken());
-            navigate("/");
+            if (username === "221701046@rajalakshmi.edu.in") {
+                navigate("/admin");
+            } else {
+                navigate("/");
+            }
         } catch(err) {
             setError(err.message);
         } finally {
