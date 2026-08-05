@@ -141,17 +141,17 @@ jobs:
       matrix:
         include:
           - service: cart_service
-            function_name: raveen-cart_service_v2
+            function_name: raveen-cart_service
           - service: order_service
-            function_name: raveen-order_service_v2
+            function_name: raveen-order_service
           - service: payment_service
-            function_name: raveen-payment_service_v2
+            function_name: raveen-payment_service
           - service: product_service
-            function_name: raveen-product_service_v2
+            function_name: raveen-product_service
           - service: Inventory_service
-            function_name: Inventory_consumer-raveen_v2
+            function_name: Inventory_consumer-raveen
           - service: Notification_service
-            function_name: email-consumer-raveen_v2
+            function_name: email-consumer-raveen
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
