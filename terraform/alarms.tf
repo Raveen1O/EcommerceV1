@@ -65,7 +65,7 @@ resource "aws_cloudwatch_metric_alarm" "order_lambda_errors" {
 resource "aws_cloudwatch_metric_alarm" "checkout_success_rate" {
   alarm_name          = "lumina-checkout-success-rate"
   comparison_operator = "LessThanThreshold"
-  evaluation_periods  = 2
+  evaluation_periods  = 1
   metric_name         = "CheckoutSuccessRate"
   namespace           = "Lumina/BusinessMetrics"
   period              = 60
@@ -83,7 +83,7 @@ resource "aws_cloudwatch_metric_alarm" "checkout_success_rate" {
 resource "aws_cloudwatch_metric_alarm" "cart_abandonment_rate" {
   alarm_name          = "lumina-cart-abandonment-rate"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
+  evaluation_periods  = 1
   metric_name         = "CartAbandonmentRate"
   namespace           = "Lumina/BusinessMetrics"
   period              = 60
@@ -101,7 +101,7 @@ resource "aws_cloudwatch_metric_alarm" "cart_abandonment_rate" {
 resource "aws_cloudwatch_metric_alarm" "revenue_generated" {
   alarm_name          = "lumina-revenue-kpi"
   comparison_operator = "LessThanThreshold"
-  evaluation_periods  = 2
+  evaluation_periods  = 1
   metric_name         = "Revenue"
   namespace           = "Lumina/BusinessMetrics"
   period              = 60
