@@ -19,7 +19,8 @@ test('Inventory service handler should update inventory based on SQS event', asy
                 body: JSON.stringify({
                     Message: JSON.stringify({
                         productId: 'prod123',
-                        quantity: 2
+                        quantity: 2,
+                        orderId: 'order123'
                     })
                 })
             }
@@ -29,10 +30,10 @@ test('Inventory service handler should update inventory based on SQS event', asy
     const response = await handler(mockEvent);
 
     assert.strictEqual(response.statusCode, 200);
-    assert.strictEqual(response.body, 'Inventory updated successfully');
+    assert.strictEqual(response.body, JSON.stringify({ message: 'All SQS messages processed successfully' }));
 
     assert.strictEqual(axios.get.mock.calls.length, 1);
-    assert.strictEqual(axios.put.mock.calls.length, 1);
+    assert.strictEqual(axios.put.mock.calls.length, 2);
 
     const putCallArgs = axios.put.mock.calls[0].arguments;
     assert.ok(putCallArgs[0].includes('prod123'));
