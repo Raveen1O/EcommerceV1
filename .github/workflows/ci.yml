@@ -27,7 +27,7 @@ jobs:
       - name: Detect Changes
         id: detect
         run: |
-          SERVICES="[]"
+          SERVICES="[\"none\"]"
           FRONTEND="false"
           
           if [ "${{ github.event_name }}" == "pull_request" ]; then
@@ -51,7 +51,7 @@ jobs:
 
   build:
     needs: changes
-    if: ${{ needs.changes.outputs.services != '[]' }}
+    if: ${{ needs.changes.outputs.services != '["none"]' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -71,7 +71,7 @@ jobs:
     needs: [changes, build]
     if: |
       always() && 
-      needs.changes.outputs.services != '[]' &&
+      needs.changes.outputs.services != '["none"]' &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     runs-on: ubuntu-latest
     strategy:
@@ -95,7 +95,7 @@ jobs:
     needs: [changes, unit_test]
     if: |
       always() && 
-      needs.changes.outputs.services != '[]' &&
+      needs.changes.outputs.services != '["none"]' &&
       (needs.unit_test.result == 'success' || needs.unit_test.result == 'skipped')
     runs-on: ubuntu-latest
     strategy:
