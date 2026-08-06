@@ -1,14 +1,40 @@
 const Product = require('../models/Product');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
+// Helper to sign S3 URLs on the fly
+const s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+
+const signProductImage = async (product) => {
+    const productObj = product.toObject ? product.toObject() : product;
+    if (productObj.imageUrl && productObj.imageUrl.includes('raveen-images.s3')) {
+        try {
+            // Extract the S3 Key from the URL
+            const urlObj = new URL(productObj.imageUrl);
+            const key = urlObj.pathname.substring(1); // remove leading slash
+            
+            const command = new GetObjectCommand({
+                Bucket: 'raveen-images',
+                Key: key
+            });
+            
+            // Sign URL valid for 1 hour
+            const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+            productObj.imageUrl = signedUrl;
+        } catch (e) {
+            console.error('Failed to sign URL:', e);
+        }
+    }
+    return productObj;
+};
 
 console.log(process.env.MONGODB_URI, 'MONGODB_URI');
 // CREATE
 exports.createProduct = async (req, res) => {
     try {
         const product = await Product.create(req.body);
-
-        res.status(201).json(product);
+        const signedProduct = await signProductImage(product);
+        res.status(201).json(signedProduct);
     } catch (err) {
         res.status(500).json({
             error: err.message
@@ -49,13 +75,17 @@ exports.getProducts = async (req, res) => {
             
             const products = await productsQuery;
             const total = await Product.countDocuments(query);
+            
+            const signedProducts = await Promise.all(products.map(signProductImage));
+            
             return res.json({
-                products,
+                products: signedProducts,
                 hasMore: (pageNum * limitNum) < total
             });
         } else {
             const products = await productsQuery;
-            return res.json(products);
+            const signedProducts = await Promise.all(products.map(signProductImage));
+            return res.json(signedProducts);
         }
     } catch (err) {
         res.status(500).json({
@@ -75,7 +105,8 @@ exports.getProductById = async (req, res) => {
             });
         }
 
-        res.json(product);
+        const signedProduct = await signProductImage(product);
+        res.json(signedProduct);
 
     } catch (error) {
         res.status(500).json({
@@ -102,7 +133,8 @@ exports.updateProduct = async (req, res) => {
             });
         }
 
-        res.json(product);
+        const signedProduct = await signProductImage(product);
+        res.json(signedProduct);
 
     } catch (error) {
         res.status(500).json({
