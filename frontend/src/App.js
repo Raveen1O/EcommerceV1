@@ -17,6 +17,7 @@ import AdminRoute from "./components/AdminRoute";
 import OrderHistory from './components/OrderHistory';
 import Wishlist from './components/Wishlist';
 import Craft from './components/Craft';
+import CustomerRoute from './components/CustomerRoute';
 
 Amplify.configure(awsConfig);
 
@@ -26,15 +27,15 @@ export default function App(){
       <Header />
       <main className="container">
         <Routes>
-          <Route path="/" element={<Products />} />
-          <Route path="/products" element={<ProductListing />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/order-status" element={<OrderStatus />} />
-          <Route path="/orders" element={<OrderHistory />} />
-          <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/craft" element={<Craft />} />
+          <Route path="/" element={<CustomerRoute><Products /></CustomerRoute>} />
+          <Route path="/products" element={<CustomerRoute><ProductListing /></CustomerRoute>} />
+          <Route path="/product/:id" element={<CustomerRoute><ProductDetail /></CustomerRoute>} />
+          <Route path="/cart" element={<CustomerRoute><Cart /></CustomerRoute>} />
+          <Route path="/payment" element={<CustomerRoute><Payment /></CustomerRoute>} />
+          <Route path="/order-status" element={<CustomerRoute><OrderStatus /></CustomerRoute>} />
+          <Route path="/orders" element={<CustomerRoute><OrderHistory /></CustomerRoute>} />
+          <Route path="/wishlist" element={<CustomerRoute><Wishlist /></CustomerRoute>} />
+          <Route path="/craft" element={<CustomerRoute><Craft /></CustomerRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/confirm" element={<ConfirmRegistration />} />
