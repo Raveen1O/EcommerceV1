@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Auth } from 'aws-amplify';
 import { useNavigate, Link } from 'react-router-dom';
-import { isLoggedIn, getEmail } from '../services/auth';
+import { isLoggedIn } from '../services/auth';
+import { jwtDecode } from 'jwt-decode';
 
 export default function Login() {
     const [username, setUsername] = useState("");
@@ -12,10 +13,16 @@ export default function Login() {
 
     useEffect(() => {
         if (isLoggedIn()) {
-            const email = getEmail();
-            if (email === "221701046@rajalakshmi.edu.in") {
-                navigate("/admin");
-            } else {
+            try {
+                const idToken = localStorage.getItem("idToken");
+                const decoded = jwtDecode(idToken);
+                const groups = decoded["cognito:groups"] || [];
+                if (groups.includes("Admin")) {
+                    navigate("/admin");
+                } else {
+                    navigate("/");
+                }
+            } catch (err) {
                 navigate("/");
             }
         }
@@ -30,7 +37,9 @@ export default function Login() {
             const session = await Auth.currentSession();
             localStorage.setItem("accessToken", session.getAccessToken().getJwtToken());
             localStorage.setItem("idToken", session.getIdToken().getJwtToken());
-            if (username === "221701046@rajalakshmi.edu.in") {
+            
+            const groups = session.getIdToken().payload["cognito:groups"] || [];
+            if (groups.includes("Admin")) {
                 navigate("/admin");
             } else {
                 navigate("/");
