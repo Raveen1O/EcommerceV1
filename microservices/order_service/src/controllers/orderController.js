@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 
 // CREATE
 exports.createOrder = async (req, res) => {
+    const start = Date.now();
     try {
         const order = await Order.create(req.body);
 
@@ -21,6 +22,18 @@ exports.createOrder = async (req, res) => {
         res.status(201).json(order);
 
     } catch (error) {
+        const duration_ms = Date.now() - start;
+        console.error(JSON.stringify({
+            message: 'Checkout attempt failed',
+            user_id: req.body.userId || 'unknown',
+            cart_value: req.body.totalPrice || 0,
+            payment_method: req.body.paymentMethod || 'unknown',
+            trace_id: req.headers['x-amzn-trace-id'] || 'none',
+            duration_ms: duration_ms,
+            status: 'failed',
+            error: error.message
+        }));
+
         res.status(500).json({
             error: error.message
         });
