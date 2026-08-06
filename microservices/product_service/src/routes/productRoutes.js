@@ -9,13 +9,16 @@ const {
     getProducts,
     getProductById,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getUploadUrl
 } = require('../controllers/productController');
 
 router.post('/',verifyToken,
     verifyAdmin, createProduct);
 
 router.get('/', getProducts);
+
+router.get('/upload-url', verifyToken, verifyAdmin, getUploadUrl);
 
 router.get('/:id', getProductById);
 

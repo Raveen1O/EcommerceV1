@@ -1,5 +1,8 @@
 const Product = require('../models/Product');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
+console.log(process.env.MONGODB_URI, 'MONGODB_URI');
 // CREATE
 exports.createProduct = async (req, res) => {
     try {
@@ -127,5 +130,39 @@ exports.deleteProduct = async (req, res) => {
         res.status(500).json({
             error: error.message
         });
+    }
+};
+
+// GET PRESIGNED UPLOAD URL
+exports.getUploadUrl = async (req, res) => {
+    try {
+        const { filename, contentType } = req.query;
+        if (!filename || !contentType) {
+            return res.status(400).json({ message: 'filename and contentType are required' });
+        }
+
+        // Clean filename and ensure uniqueness
+        const cleanFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const key = `products/${Date.now()}-${cleanFilename}`;
+        
+        const s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+        const command = new PutObjectCommand({
+            Bucket: 'raveen-images',
+            Key: key,
+            ContentType: contentType
+        });
+
+        // URL expires in 15 minutes
+        const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
+        const publicUrl = `https://raveen-images.s3.${process.env.AWS_REGION || 'ap-southeast-1'}.amazonaws.com/${key}`;
+
+        res.json({
+            uploadUrl,
+            publicUrl
+        });
+
+    } catch (error) {
+        console.error('Error generating pre-signed URL:', error);
+        res.status(500).json({ error: error.message });
     }
 };

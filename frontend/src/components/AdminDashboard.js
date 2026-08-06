@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   // Edit / Create State
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
+  const [imageFile, setImageFile] = useState(null);
   const [currentProduct, setCurrentProduct] = useState({
     name: '',
     category: '',
@@ -69,6 +70,7 @@ export default function AdminDashboard() {
 
   const handleOpenModal = (mode, product = null) => {
     setModalMode(mode);
+    setImageFile(null);
     if (mode === 'edit' && product) {
       setCurrentProduct({
         _id: product._id,
@@ -95,6 +97,7 @@ export default function AdminDashboard() {
   const handleCloseModal = () => {
     setShowModal(false);
     setCurrentProduct(null);
+    setImageFile(null);
   };
 
   const handleChange = (e) => {
@@ -105,13 +108,40 @@ export default function AdminDashboard() {
     }));
   };
 
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
+
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
+      let finalImageUrl = currentProduct.imageUrl;
+
+      if (imageFile) {
+        // Request presigned URL
+        const urlRes = await api.get(`/api/products/upload-url?filename=${encodeURIComponent(imageFile.name)}&contentType=${encodeURIComponent(imageFile.type)}`);
+        const { uploadUrl, publicUrl } = urlRes.data;
+        
+        // Upload to S3 directly
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          body: imageFile,
+          headers: {
+            'Content-Type': imageFile.type
+          }
+        });
+        
+        finalImageUrl = publicUrl;
+      }
+
+      const productPayload = { ...currentProduct, imageUrl: finalImageUrl };
+
       if (modalMode === 'create') {
-        await api.post('/api/products', currentProduct);
+        await api.post('/api/products', productPayload);
       } else {
-        const { _id, ...updateData } = currentProduct;
+        const { _id, ...updateData } = productPayload;
         await api.put(`/api/products/${_id}`, updateData);
       }
       handleCloseModal();
@@ -404,8 +434,13 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="form-group">
-                <label>Image URL</label>
-                <input type="text" name="imageUrl" value={currentProduct.imageUrl} onChange={handleChange} placeholder="https://..." />
+                <label>Product Image</label>
+                <input type="file" accept="image/*" onChange={handleFileChange} />
+                {currentProduct.imageUrl && !imageFile && (
+                  <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                    Current image: <a href={currentProduct.imageUrl} target="_blank" rel="noreferrer">View</a>
+                  </div>
+                )}
               </div>
               
               <div className="modal-actions">
