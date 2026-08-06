@@ -16,7 +16,7 @@ exports.createProduct = async (req, res) => {
 // GET ALL
 exports.getProducts = async (req, res) => {
     try {
-        const { search, category, sort } = req.query;
+        const { search, category, sort, page, limit } = req.query;
         let query = {};
 
         if (search) {
@@ -38,9 +38,22 @@ exports.getProducts = async (req, res) => {
         if (Object.keys(sortOption).length > 0) {
             productsQuery.sort(sortOption);
         }
-        const products = await productsQuery;
-
-        res.json(products);
+        
+        if (page && limit) {
+            const pageNum = parseInt(page);
+            const limitNum = parseInt(limit);
+            productsQuery.skip((pageNum - 1) * limitNum).limit(limitNum);
+            
+            const products = await productsQuery;
+            const total = await Product.countDocuments(query);
+            return res.json({
+                products,
+                hasMore: (pageNum * limitNum) < total
+            });
+        } else {
+            const products = await productsQuery;
+            return res.json(products);
+        }
     } catch (err) {
         res.status(500).json({
             error: err.message

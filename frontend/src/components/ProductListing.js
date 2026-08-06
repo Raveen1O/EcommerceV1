@@ -20,23 +20,51 @@ export default function ProductListing() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
+  
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const limit = 15;
 
   const searchQuery = searchParams.get('search') || '';
   const sortParam = searchParams.get('sort') || '';
 
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+    setProducts([]);
+  }, [searchQuery, rawCategory, sortParam]);
+
   useEffect(() => {
     setLoading(true);
-    let url = '/api/products?';
     const params = new URLSearchParams();
     if (searchQuery) params.append('search', searchQuery);
     if (rawCategory && rawCategory !== 'All') params.append('category', rawCategory);
     if (sortParam) params.append('sort', sortParam);
     
+    const isAllProducts = (!rawCategory || rawCategory === 'All') && !searchQuery;
+    
+    if (isAllProducts) {
+      params.append('page', page);
+      params.append('limit', limit);
+    }
+    
     api.get(`/api/products?${params.toString()}`)
-      .then(res => setProducts(res.data || []))
+      .then(res => {
+        if (isAllProducts && res.data && res.data.products) {
+          if (page === 1) {
+            setProducts(res.data.products);
+          } else {
+            setProducts(prev => [...prev, ...res.data.products]);
+          }
+          setHasMore(res.data.hasMore);
+        } else {
+          setProducts(res.data || []);
+          setHasMore(false);
+        }
+      })
       .catch(() => setError('Failed to load products.'))
       .finally(() => setLoading(false));
-  }, [searchQuery, rawCategory, sortParam]);
+  }, [searchQuery, rawCategory, sortParam, page]);
 
   const handleCategory = (cat) => {
     const params = new URLSearchParams(searchParams);
@@ -106,51 +134,65 @@ export default function ProductListing() {
         </div>
 
         {/* Grid */}
-        {loading ? (
+        {loading && page === 1 ? (
           <div className="center" style={{ minHeight: '40vh' }}>
             <div className="spinner" />
           </div>
         ) : error ? (
           <div className="error-text" style={{ padding: '40px 0' }}>{error}</div>
         ) : (
-          <div className="listing-grid">
-            {products.length === 0 ? (
-              <div style={{ padding: '40px 0', gridColumn: '1 / -1', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                No products found in this category.
+          <>
+            <div className="listing-grid">
+              {products.length === 0 ? (
+                <div style={{ padding: '40px 0', gridColumn: '1 / -1', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  No products found in this category.
+                </div>
+              ) : (
+                products.map(product => {
+                  const imageUrl = getProductImage(product);
+                  return (
+                    <Link
+                      key={product._id}
+                      to={`/product/${product._id}`}
+                      className="listing-card"
+                    >
+                      <div className="listing-card-img">
+                        {imageUrl ? (
+                          <img src={imageUrl} alt={product.name} />
+                        ) : (
+                          <div className="img-placeholder" />
+                        )}
+                        <div className="listing-card-hover-overlay">
+                          <span>VIEW PRODUCT</span>
+                        </div>
+                      </div>
+                      <div className="listing-card-info">
+                        <div className="listing-card-category">
+                          {product.category || 'LUMINA'}
+                        </div>
+                        <div className="listing-card-name">{product.name}</div>
+                        <div className="listing-card-price">
+                          ${product.price?.toFixed(2)}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+            
+            {hasMore && (
+              <div className="center" style={{ marginTop: '60px', marginBottom: '20px' }}>
+                <button 
+                  className="btn-explore" 
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={loading}
+                >
+                  {loading ? 'LOADING...' : 'LOAD MORE'}
+                </button>
               </div>
-            ) : (
-              products.map(product => {
-                const imageUrl = getProductImage(product);
-                return (
-                  <Link
-                    key={product._id}
-                    to={`/product/${product._id}`}
-                    className="listing-card"
-                  >
-                    <div className="listing-card-img">
-                      {imageUrl ? (
-                        <img src={imageUrl} alt={product.name} />
-                      ) : (
-                        <div className="img-placeholder" />
-                      )}
-                      <div className="listing-card-hover-overlay">
-                        <span>VIEW PRODUCT</span>
-                      </div>
-                    </div>
-                    <div className="listing-card-info">
-                      <div className="listing-card-category">
-                        {product.category || 'LUMINA'}
-                      </div>
-                      <div className="listing-card-name">{product.name}</div>
-                      <div className="listing-card-price">
-                        ${product.price?.toFixed(2)}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })
             )}
-          </div>
+          </>
         )}
       </div>
 
