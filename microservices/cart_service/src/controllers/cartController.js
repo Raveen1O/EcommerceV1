@@ -256,6 +256,10 @@ exports.checkout = async (req, res) => {
                     MetricName: 'CartAbandonmentRate',
                     Value: 0,
                     Dimensions: [{ Name: 'FunctionName', Value: 'raveen-cart_service' }]
+                }, {
+                    MetricName: 'CheckoutSuccessRate',
+                    Value: 100,
+                    Dimensions: [{ Name: 'FunctionName', Value: 'raveen-cart_service' }]
                 }]
             }));
         } catch(e) { console.error('CW Error', e); }
@@ -282,6 +286,19 @@ exports.checkout = async (req, res) => {
         console.error("Axios Response:", error.response?.data);
 
         console.error("Stack:", error.stack);
+
+        try {
+            const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
+            const cwClient = new CloudWatchClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+            await cwClient.send(new PutMetricDataCommand({
+                Namespace: 'Lumina/BusinessMetrics',
+                MetricData: [{
+                    MetricName: 'CheckoutSuccessRate',
+                    Value: 0,
+                    Dimensions: [{ Name: 'FunctionName', Value: 'raveen-cart_service' }]
+                }]
+            }));
+        } catch(e) { console.error('CW Error', e); }
 
         return res.status(500).json({
             message: error.message,

@@ -76,7 +76,7 @@ resource "aws_cloudwatch_metric_alarm" "checkout_success_rate" {
   alarm_actions       = [data.aws_sns_topic.cloudwatch_alerts.arn]
 
   dimensions = {
-    FunctionName = "raveen-payment_service"
+    FunctionName = "raveen-cart_service"
   }
 }
 
