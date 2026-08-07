@@ -111,7 +111,7 @@ exports.removeCartItem = async (req, res) => {
         }
 
         await Cart.findByIdAndDelete(req.params.cartItemId);
-
+//test2
         try {
             const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
             const cwClient = new CloudWatchClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });

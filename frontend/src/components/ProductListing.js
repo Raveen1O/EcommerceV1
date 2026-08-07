@@ -205,14 +205,15 @@ export default function ProductListing() {
           </div>
           <div className="footer-col">
             <h4>EXPLORE</h4>
-            <Link to="/products">All Collections</Link>
-            <Link to="/products?category=outerwear">Outerwear</Link>
-            <Link to="/products?category=knitwear">Knitwear</Link>
+            <Link to="/products">Collections</Link>
+            <Link to="/products?category=outerwear">New Arrivals</Link>
+            <a href="/store-locator">Store Locator</a>
           </div>
           <div className="footer-col">
             <h4>ASSISTANCE</h4>
-            <a href="#">Shipping &amp; Returns</a>
-            <a href="#">Privacy Policy</a>
+            <a href="/shipping-returns">Shipping & Returns</a>
+            <a href="/privacy-policy">Privacy Policy</a>
+            <a href="/terms-of-service">Terms of Service</a>
           </div>
         </div>
       </footer>

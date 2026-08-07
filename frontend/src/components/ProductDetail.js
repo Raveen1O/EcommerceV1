@@ -339,16 +339,17 @@ export default function ProductDetail() {
             </div>
           </div>
           <div className="footer-col">
-            <h4>SUPPORT</h4>
-            <a href="#">Contact Us</a>
-            <a href="#">Shipping &amp; Returns</a>
-            <a href="#">Store Locator</a>
-          </div>
-          <div className="footer-col">
-            <h4>LEGAL</h4>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-          </div>
+              <h4>EXPLORE</h4>
+              <a href="#">Collections</a>
+              <a href="#">New Arrivals</a>
+              <a href="/store-locator">Store Locator</a>
+           </div>
+           <div className="footer-col">
+              <h4>ASSISTANCE</h4>
+              <a href="/shipping-returns">Shipping &amp; Returns</a>
+              <a href="/privacy-policy">Privacy Policy</a>
+              <a href="/terms-of-service">Terms of Service</a>
+           </div>
         </div>
       </footer>
     </div>

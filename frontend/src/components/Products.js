@@ -80,13 +80,13 @@ export default function Products(){
               <h4>EXPLORE</h4>
               <a href="#">Collections</a>
               <a href="#">New Arrivals</a>
-              <a href="#">Store Locator</a>
+              <a href="/store-locator">Store Locator</a>
            </div>
            <div className="footer-col">
               <h4>ASSISTANCE</h4>
-              <a href="#">Shipping & Returns</a>
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
+              <a href="/shipping-returns">Shipping & Returns</a>
+              <a href="/privacy-policy">Privacy Policy</a>
+              <a href="/terms-of-service">Terms of Service</a>
            </div>
            <div className="footer-col" style={{textAlign:'right'}}>
               <div className="socials" style={{justifyContent:'flex-end'}}>

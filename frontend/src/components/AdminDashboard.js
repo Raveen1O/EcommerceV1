@@ -4,6 +4,8 @@ import { getProductImage } from '../services/productImage';
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -37,6 +39,10 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(() => {
+      fetchData();
+    }, 6 * 60 * 60 * 1000); // 6 hours
+    return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {
@@ -247,6 +253,62 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       <p>No sales data available.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginTop: '32px' }}>
+                  {/* Cart Abandonment Rate Graph */}
+                  <div className="analytics-section" style={{ flex: 1, minWidth: '400px', background: 'var(--bg-secondary)', padding: '24px', borderRadius: '4px' }}>
+                    <h3 style={{ marginBottom: '16px' }}>Cart Abandonment Rate (%)</h3>
+                    {analytics.cartAbandonmentMetrics && analytics.cartAbandonmentMetrics.length > 0 ? (
+                      <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={analytics.cartAbandonmentMetrics}
+                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eaeaea" />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} tickFormatter={(val) => `${val}%`} />
+                            <Tooltip
+                              cursor={{ stroke: '#eaeaea', strokeWidth: 1 }}
+                              contentStyle={{ borderRadius: '4px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                              formatter={(value) => [`${value.toFixed(2)}%`, 'Abandonment Rate']}
+                            />
+                            <Line type="monotone" dataKey="value" stroke="#e63946" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <p>No abandonment data available.</p>
+                    )}
+                  </div>
+
+                  {/* Checkout Success Rate Graph */}
+                  <div className="analytics-section" style={{ flex: 1, minWidth: '400px', background: 'var(--bg-secondary)', padding: '24px', borderRadius: '4px' }}>
+                    <h3 style={{ marginBottom: '16px' }}>Checkout Success Rate (%)</h3>
+                    {analytics.checkoutSuccessMetrics && analytics.checkoutSuccessMetrics.length > 0 ? (
+                      <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={analytics.checkoutSuccessMetrics}
+                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eaeaea" />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} tickFormatter={(val) => `${val}%`} />
+                            <Tooltip
+                              cursor={{ stroke: '#eaeaea', strokeWidth: 1 }}
+                              contentStyle={{ borderRadius: '4px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                              formatter={(value) => [`${value.toFixed(2)}%`, 'Success Rate']}
+                            />
+                            <Line type="monotone" dataKey="value" stroke="#2a9d8f" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <p>No checkout success data available.</p>
                     )}
                   </div>
                 </div>

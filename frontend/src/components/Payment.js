@@ -193,15 +193,16 @@ export default function Payment() {
              </div>
            </div>
            <div className="footer-col">
-              <h4>SUPPORT</h4>
-              <a href="#">Contact Us</a>
-              <a href="#">Shipping & Returns</a>
-              <a href="#">Store Locator</a>
+              <h4>EXPLORE</h4>
+              <a href="#">Collections</a>
+              <a href="#">New Arrivals</a>
+              <a href="/store-locator">Store Locator</a>
            </div>
            <div className="footer-col">
-              <h4>LEGAL</h4>
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
+              <h4>ASSISTANCE</h4>
+              <a href="/shipping-returns">Shipping & Returns</a>
+              <a href="/privacy-policy">Privacy Policy</a>
+              <a href="/terms-of-service">Terms of Service</a>
            </div>
          </div>
       </footer>

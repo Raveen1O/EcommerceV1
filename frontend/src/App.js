@@ -18,6 +18,7 @@ import OrderHistory from './components/OrderHistory';
 import Wishlist from './components/Wishlist';
 import Craft from './components/Craft';
 import CustomerRoute from './components/CustomerRoute';
+import { StoreLocator, ShippingReturns, PrivacyPolicy, TermsOfService } from './components/StaticPages';
 
 Amplify.configure(awsConfig);
 
@@ -44,6 +45,10 @@ export default function App(){
               <AdminDashboard />
             </AdminRoute>
           } />
+          <Route path="/store-locator" element={<StoreLocator />} />
+          <Route path="/shipping-returns" element={<ShippingReturns />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
         </Routes>
       </main>
     </div>

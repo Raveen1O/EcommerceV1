@@ -114,6 +114,45 @@ exports.getAnalytics = async (req, res) => {
         const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
         const lowStockProducts = products.filter(p => p.stock < 3);
 
+        let cartAbandonmentMetrics = [];
+        let checkoutSuccessMetrics = [];
+        try {
+            const { CloudWatchClient, GetMetricStatisticsCommand } = require('@aws-sdk/client-cloudwatch');
+            const cwClient = new CloudWatchClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+            
+            const endTime = new Date();
+            const startTime = new Date(endTime.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+
+            const getStats = async (metricName) => {
+                const command = new GetMetricStatisticsCommand({
+                    Namespace: 'Lumina/BusinessMetrics',
+                    MetricName: metricName,
+                    Dimensions: [{ Name: 'FunctionName', Value: 'raveen-cart_service' }],
+                    StartTime: startTime,
+                    EndTime: endTime,
+                    Period: 86400, // Daily
+                    Statistics: ['Average']
+                });
+                const data = await cwClient.send(command);
+                if (data.Datapoints) {
+                    return data.Datapoints
+                        .sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp))
+                        .map(dp => ({
+                            date: new Date(dp.Timestamp).toISOString().split('T')[0],
+                            value: dp.Average || 0
+                        }));
+                }
+                return [];
+            };
+
+            [cartAbandonmentMetrics, checkoutSuccessMetrics] = await Promise.all([
+                getStats('CartAbandonmentRate'),
+                getStats('CheckoutSuccessRate')
+            ]);
+        } catch (cwErr) {
+            console.error('Failed to fetch CloudWatch metrics', cwErr);
+        }
+
         const topSellingProducts = Object.keys(productSales)
             .map(pid => ({
                 product: productsMap[pid] || { name: 'Unknown' },
@@ -131,7 +170,9 @@ exports.getAnalytics = async (req, res) => {
             topSellingProducts,
             categorySales,
             lowStockCount: lowStockProducts.length,
-            lowStockProducts
+            lowStockProducts,
+            cartAbandonmentMetrics,
+            checkoutSuccessMetrics
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
