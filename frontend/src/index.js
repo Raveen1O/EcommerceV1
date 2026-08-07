@@ -9,3 +9,5 @@ createRoot(document.getElementById('root')).render(
     <App />
   </BrowserRouter>
 );
+
+// Triggering CI/CD pipeline and security scans for deployment
