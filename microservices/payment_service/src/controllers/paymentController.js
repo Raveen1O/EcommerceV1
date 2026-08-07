@@ -11,7 +11,7 @@ console.log('AWS_REGION =', process.env.AWS_REGION);
 const snsClient = AWSXRay.captureAWSv3Client(new SNSClient({
     region: process.env.AWS_REGION || 'ap-southeast-1'
 }));
-
+//test
 exports.processPayment = async (req, res) => {
 
     try {

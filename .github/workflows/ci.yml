@@ -91,12 +91,119 @@ jobs:
         working-directory: ./microservices/${{ matrix.service }}
         run: node --experimental-test-coverage --test
 
-  deploy:
+  sast_scan:
     needs: [changes, unit_test]
     if: |
       always() && 
       needs.changes.outputs.services != '["none"]' &&
       (needs.unit_test.result == 'success' || needs.unit_test.result == 'skipped')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+      - name: Run Snyk SAST
+        working-directory: ./microservices/${{ matrix.service }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk code test --json > snyk-sast.json || true
+          node ../../scripts/snyk-score.js snyk-sast.json
+
+  sast_scan_frontend:
+    needs: [changes]
+    if: |
+      always() && 
+      needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+      - name: Run Snyk SAST (Frontend)
+        working-directory: ./frontend
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk code test --json > snyk-sast.json || true
+          node ../scripts/snyk-score.js snyk-sast.json
+
+  sca_scan:
+    needs: [changes, sast_scan]
+    if: |
+      always() && 
+      needs.changes.outputs.services != '["none"]' &&
+      (needs.sast_scan.result == 'success' || needs.sast_scan.result == 'skipped')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Dependencies
+        working-directory: ./microservices/${{ matrix.service }}
+        run: npm install
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+      - name: Run Snyk SCA
+        working-directory: ./microservices/${{ matrix.service }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk test --json > snyk-sca.json || true
+          node ../../scripts/snyk-score.js snyk-sca.json
+
+  sca_scan_frontend:
+    needs: [changes, sast_scan_frontend]
+    if: |
+      always() && 
+      needs.changes.outputs.frontend == 'true' &&
+      (needs.sast_scan_frontend.result == 'success' || needs.sast_scan_frontend.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Dependencies
+        working-directory: ./frontend
+        run: npm install
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+      - name: Run Snyk SCA (Frontend)
+        working-directory: ./frontend
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk test --json > snyk-sca.json || true
+          node ../scripts/snyk-score.js snyk-sca.json
+
+  deploy:
+    needs: [changes, sca_scan]
+    if: |
+      always() && 
+      needs.changes.outputs.services != '["none"]' &&
+      (needs.sca_scan.result == 'success' || needs.sca_scan.result == 'skipped')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -136,11 +243,12 @@ jobs:
             --zip-file fileb://microservices/${{ matrix.service }}.zip
 
   deploy_frontend:
-    needs: [changes, unit_test]
+    needs: [changes, deploy, sca_scan_frontend]
     if: |
       always() && 
       needs.changes.outputs.frontend == 'true' &&
-      (needs.unit_test.result == 'success' || needs.unit_test.result == 'skipped')
+      (needs.deploy.result == 'success' || needs.deploy.result == 'skipped' || needs.deploy.result == 'true') &&
+      (needs.sca_scan_frontend.result == 'success' || needs.sca_scan_frontend.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
