@@ -115,6 +115,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
+          snyk code test || true
           snyk code test --json > snyk-sast.json || true
           node ../../scripts/snyk-score.js snyk-sast.json
 
@@ -138,6 +139,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
+          snyk code test || true
           snyk code test --json > snyk-sast.json || true
           node ../scripts/snyk-score.js snyk-sast.json
 
@@ -168,6 +170,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
+          snyk test || true
           snyk test --json > snyk-sca.json || true
           node ../../scripts/snyk-score.js snyk-sca.json
 
@@ -195,6 +198,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
+          snyk test || true
           snyk test --json > snyk-sca.json || true
           node ../scripts/snyk-score.js snyk-sca.json
 
@@ -271,3 +275,11 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
           aws s3 sync frontend/build/ s3://raveen-ecommerce --delete
+      - name: CloudFront Invalidation
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws cloudfront create-invalidation --distribution-id E3O61KTC2ZXO5Y --paths "/*"

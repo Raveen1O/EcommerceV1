@@ -10,4 +10,4 @@ npm install
 npm start
 ```
 
-Config: `src/aws-exports.js` contains the Cognito config and API base URL.
+Config: `src/aws-exports.js` contains the Cognito config and API base URL. 
