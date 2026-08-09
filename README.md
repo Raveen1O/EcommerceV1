@@ -63,7 +63,7 @@ By importing the `aws-xray-sdk` and instrumenting the Express.js app inside the 
 This deeper insight is invaluable for profiling bottlenecks and debugging complex distributed requests.
 
 ### CloudWatch Alarms
-To proactively monitor the health and performance of the platform, we have configured specific AWS CloudWatch Alarms. *(Note: The thresholds below are deliberately lowered for testing and showcasing purposes.)*
+To proactively monitor the health and performance of the platform, we have configured specific AWS CloudWatch Alarms. These alarms once triggered is sent to a SNS topic which has a email subscribed to it enabling the subscriber to recieve notifications. *(Note: The thresholds below are deliberately lowered for testing and showcasing purposes.)*
 - **API Gateway Latency**: Triggers if latency `> 2000ms` within a 1-minute period.
 - **API Gateway 5xx Errors**: Triggers if there are `> 2` errors within a 1-minute period.
 - **Revenue KPI**: Triggers if revenue is `< $500` within a 1-minute period.
