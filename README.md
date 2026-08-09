@@ -56,7 +56,7 @@ In this architecture, AWS X-Ray is instrumented directly within the application 
 
 **Why did we do this?**
 Simply enabling manual X-Ray tracing on a Lambda function only tracks the invocation up to the Lambda handler itself. It treats the function execution as a "black box". 
-By importing the `aws-xray-sdk` and instrumenting the Express.js app inside the Lambda (e.g., `AWSXRay.express.openSegment` and capturing the global `http`/`https` agents), we gain **granular, subsegment-level visibility**. This allows us to precisely measure the time spent in:
+By importing the `aws-xray-sdk` and instrumenting the Express.js app inside the Lambda (e.g., `AWSXRay.express.openSegment` and capturing the global `http`/`https` agents), we gain **granular, subsegment-level visibility**. This allows us to precisely measure the time spent in :
 - Specific Express route executions.
 - Database queries.
 - Downstream HTTP calls to other services or 3rd-party APIs.
