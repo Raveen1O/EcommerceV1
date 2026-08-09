@@ -145,3 +145,61 @@ test('Order deleteOrder should delete order and return success message', async (
     await orderController.getOrderById(getReq, getRes);
     assert.strictEqual(getStatus, 404);
 });
+
+test('Order catch blocks', async (t) => {
+    let statusCode;
+    const res = { status(code) { statusCode = code; return this; }, json(body) { return this; } };
+
+    // createOrder
+    mock.method(Order, 'create', async () => { throw new Error('DB Error'); });
+    await orderController.createOrder({ body: {}, headers: {} }, res);
+    assert.strictEqual(statusCode, 500);
+
+    // getOrders
+    const mockFindError = mock.fn(() => { throw new Error('DB Error'); });
+    mock.method(Order, 'find', mockFindError);
+    await orderController.getOrders({}, res);
+    assert.strictEqual(statusCode, 500);
+
+    // getOrdersByUser
+    await orderController.getOrdersByUser({ params: {} }, res);
+    assert.strictEqual(statusCode, 500);
+
+    // getOrderById
+    mock.method(Order, 'findById', async () => { throw new Error('DB Error'); });
+    await orderController.getOrderById({ params: {} }, res);
+    assert.strictEqual(statusCode, 500);
+
+    // updateOrder
+    mock.method(Order, 'findByIdAndUpdate', async () => { throw new Error('DB Error'); });
+    await orderController.updateOrder({ params: {}, body: {} }, res);
+    assert.strictEqual(statusCode, 500);
+
+    // deleteOrder
+    mock.method(Order, 'findByIdAndDelete', async () => { throw new Error('DB Error'); });
+    await orderController.deleteOrder({ params: {} }, res);
+    assert.strictEqual(statusCode, 500);
+});
+
+test('Order edge cases (404s, getAnalytics fetch failure)', async (t) => {
+    let statusCode;
+    const res = { status(code) { statusCode = code; return this; }, json(body) { return this; } };
+
+    mock.method(Order, 'findByIdAndUpdate', async () => null);
+    await orderController.updateOrder({ params: { id: 'invalid' }, body: {} }, res);
+    assert.strictEqual(statusCode, 404);
+
+    mock.method(Order, 'findByIdAndDelete', async () => null);
+    await orderController.deleteOrder({ params: { id: 'invalid' } }, res);
+    assert.strictEqual(statusCode, 404);
+
+    // getAnalytics fetch failure
+    global.fetch = mock.fn(async () => ({ ok: false }));
+    await orderController.getAnalytics({}, res);
+    assert.strictEqual(statusCode, 500);
+
+    // getAnalytics DB failure
+    mock.method(Order, 'find', mock.fn(() => { throw new Error('DB Error'); }));
+    await orderController.getAnalytics({}, res);
+    assert.strictEqual(statusCode, 500);
+});

@@ -169,3 +169,82 @@ test('Cart decreaseProduct should decrement quantity', async (t) => {
     await cartController.decreaseProduct(req, res);
     assert.strictEqual(jsonBody.quantity, 1);
 });
+
+test('Cart catch blocks', async (t) => {
+    mock.method(Cart, 'find', async () => { throw new Error('DB Error'); });
+    let statusCode;
+    const res = { status(code) { statusCode = code; return this; }, json(body) { return this; } };
+    
+    await cartController.getUserCart({ user: { sub: 'user1' }, params: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    await cartController.getCartItems({}, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Cart, 'findOne', async () => { throw new Error('DB Error'); });
+    await cartController.addToCart({ user: {}, body: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    await cartController.addProduct({ user: {}, body: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    await cartController.decreaseProduct({ user: {}, body: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    await cartController.checkout({ user: {}, headers: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Cart, 'findById', async () => { throw new Error('DB Error'); });
+    await cartController.getCartItemById({ params: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Cart, 'findByIdAndUpdate', async () => { throw new Error('DB Error'); });
+    await cartController.updateCartItem({ params: {}, body: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Cart, 'findByIdAndDelete', async () => { throw new Error('DB Error'); });
+    await cartController.removeCartItem({ params: {}, user: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Cart, 'deleteMany', async () => { throw new Error('DB Error'); });
+    await cartController.clearUserCart({ user: {} }, res);
+    assert.strictEqual(statusCode, 500);
+});
+
+test('Cart edge cases (404s, empty cart, decrements)', async (t) => {
+    let statusCode;
+    const res = { status(code) { statusCode = code; return this; }, json(body) { return this; } };
+    
+    // update/remove/get 404
+    mock.method(Cart, 'findById', async () => null);
+    await cartController.getCartItemById({ params: { id: 'invalid' } }, res);
+    assert.strictEqual(statusCode, 404);
+    
+    mock.method(Cart, 'findByIdAndUpdate', async () => null);
+    await cartController.updateCartItem({ params: { id: 'invalid' }, body: {} }, res);
+    assert.strictEqual(statusCode, 404);
+    
+    mock.method(Cart, 'findByIdAndDelete', async () => null);
+    await cartController.removeCartItem({ params: { cartItemId: 'invalid' }, user: { sub: 'user' } }, res);
+    assert.strictEqual(statusCode, 404);
+    
+    // addProduct/decreaseProduct not found
+    mock.method(Cart, 'findOne', async () => null);
+    await cartController.addProduct({ user: { sub: 'u' }, body: { productId: 'p' } }, res);
+    
+    await cartController.decreaseProduct({ user: { sub: 'u' }, body: { productId: 'p' } }, res);
+    
+    // decreaseProduct to 0 (should delete)
+    const mockItem = { quantity: 1, save: async function() { this.quantity--; return this; }, _id: 'cartX' };
+    mock.method(Cart, 'findOne', async () => mockItem);
+    mock.method(Cart, 'findByIdAndDelete', async () => mockItem);
+    let jsonBody;
+    const res2 = { json(body) { jsonBody = body; return this; } };
+    await cartController.decreaseProduct({ user: { sub: 'u' }, body: { productId: 'p' } }, res2);
+    assert.strictEqual(jsonBody.message, 'Product removed from cart');
+    
+    // checkout empty cart
+    mock.method(Cart, 'find', async () => []);
+    await cartController.checkout({ user: { sub: 'u' }, headers: {} }, res);
+    assert.strictEqual(statusCode, 400);
+});

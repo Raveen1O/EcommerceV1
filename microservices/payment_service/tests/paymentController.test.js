@@ -131,3 +131,65 @@ test('Payment getPayments should return all payments', async (t) => {
     assert.strictEqual(jsonBody.length, 1);
     assert.strictEqual(jsonBody[0].amount, 100);
 });
+
+test('Payment catch blocks and API errors', async (t) => {
+    let statusCode;
+    const res = { status(code) { statusCode = code; return this; }, json(body) { return this; } };
+
+    // getPayments DB error
+    mock.method(Payment, 'find', async () => { throw new Error('DB Error'); });
+    await paymentController.getPayments({}, res);
+    assert.strictEqual(statusCode, 500);
+    
+    // processPayment 404 order
+    axios.get.mock.resetCalls();
+    mock.method(axios, 'get', async (url) => {
+        if (url.includes('orders')) throw { response: { status: 404 } }; // simulate 404
+        return { data: null };
+    });
+    
+    const req = { body: { orderId: 'invalid' } };
+    await paymentController.processPayment(req, res);
+    
+    // processPayment general error
+    mock.method(axios, 'get', async () => { throw new Error('General Error'); });
+    await paymentController.processPayment(req, res);
+});
+
+test('Payment invalid card and edge cases', async (t) => {
+    let statusCode;
+    const res = { status(code) { statusCode = code; return this; }, json(body) { return this; } };
+    
+    mock.method(axios, 'get', async (url) => {
+        if (url.includes('orders')) {
+            return { data: { _id: 'order1', status: 'Pending', productId: 'prod1', quantity: 1, totalPrice: 100, userId: 'user1' } };
+        }
+        if (url.includes('products')) {
+            return { data: { _id: 'prod1', stock: 10 } };
+        }
+    });
+
+    const reqInvalid = {
+        body: {
+            orderId: 'order1',
+            fullName: 'Test User',
+            cardNumber: '1111 1111 1111 1111', // will trigger fail
+            expiry: '12/25',
+            cvc: '123'
+        },
+        headers: {}
+    };
+    await paymentController.processPayment(reqInvalid, res);
+
+    const reqNoProduct = {
+        body: { orderId: 'order1' }
+    };
+    mock.method(axios, 'get', async (url) => {
+        if (url.includes('orders')) return { data: { _id: 'order1', status: 'Pending', productId: 'prod1' } };
+        if (url.includes('products')) return { data: null }; // missing product
+    });
+    await paymentController.processPayment(reqNoProduct, res);
+
+    const reqMissingFields = { body: {} };
+    await paymentController.processPayment(reqMissingFields, res);
+});

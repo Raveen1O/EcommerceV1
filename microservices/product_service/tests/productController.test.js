@@ -11,7 +11,9 @@ let mockProducts = [
 ];
 
 const queryMock = {
-    sort: mock.fn(() => mockProducts),
+    sort: mock.fn(function() { return this; }),
+    skip: mock.fn(function() { return this; }),
+    limit: mock.fn(function() { return this; }),
     then: function(resolve) { resolve(mockProducts); }
 };
 
@@ -111,4 +113,87 @@ test('Product full deletion flow: Create, Delete, Verify, Cleanup', async (t) =>
     // 4. Clean up any remaining test data (ensure it's not in the mock array)
     const exists = mockProducts.some(p => p._id === testId);
     assert.strictEqual(exists, false, 'Test product should be completely cleaned up from the datastore');
+});
+
+test('Product getProducts with pagination, search, and sort', async (t) => {
+    mock.method(Product, 'countDocuments', async () => 10);
+    const req = { query: { search: 'shirt', category: 'clothing', sort: 'newest', page: '1', limit: '5' } };
+    let jsonBody;
+    const res = { status() { return this; }, json(body) { jsonBody = body; return this; } };
+    await productController.getProducts(req, res);
+    assert.ok(jsonBody.products);
+});
+
+test('Product getProducts with pagination but hasMore false', async (t) => {
+    mock.method(Product, 'countDocuments', async () => 2);
+    const req = { query: { page: '1', limit: '5', sort: 'alpha-asc' } };
+    let jsonBody;
+    const res = { status() { return this; }, json(body) { jsonBody = body; return this; } };
+    await productController.getProducts(req, res);
+    assert.strictEqual(jsonBody.hasMore, false);
+});
+
+test('Product getProducts sort variations', async (t) => {
+    const reqDesc = { query: { sort: 'alpha-desc' } };
+    const res = { status() { return this; }, json(body) { return this; } };
+    await productController.getProducts(reqDesc, res);
+    const reqPriceDesc = { query: { sort: 'price-desc' } };
+    await productController.getProducts(reqPriceDesc, res);
+    assert.ok(true);
+});
+
+test('Product createProduct with S3 Image URL should sign URL', async (t) => {
+    const req = { body: { name: 'Hat', price: 20, imageUrl: 'https://raveen-images.s3.ap-southeast-1.amazonaws.com/test.jpg' } };
+    let jsonBody;
+    const res = { status(code) { return this; }, json(body) { jsonBody = body; return this; } };
+    await productController.createProduct(req, res);
+    assert.strictEqual(jsonBody.name, 'Hat');
+});
+
+test('Product updateProduct and deleteProduct 404', async (t) => {
+    const req = { params: { id: 'invalid_id' }, body: {} };
+    let statusCode;
+    const res = { status(code) { statusCode = code; return this; }, json(body) { return this; } };
+    await productController.updateProduct(req, res);
+    assert.strictEqual(statusCode, 404);
+    await productController.deleteProduct(req, res);
+    assert.strictEqual(statusCode, 404);
+});
+
+test('Product getUploadUrl', async (t) => {
+    const req = { query: { filename: 'test image.png', contentType: 'image/png' } };
+    let jsonBody;
+    const res = { status(code) { return this; }, json(body) { jsonBody = body; return this; } };
+    await productController.getUploadUrl(req, res);
+    assert.ok(jsonBody.uploadUrl);
+    
+    let errCode;
+    const errRes = { status(code) { errCode = code; return this; }, json(body) { return this; } };
+    await productController.getUploadUrl({ query: {} }, errRes);
+    assert.strictEqual(errCode, 400);
+});
+
+test('Product catch blocks', async (t) => {
+    mock.method(Product, 'create', async () => { throw new Error('DB Error'); });
+    let statusCode;
+    const res = { status(code) { statusCode = code; return this; }, json(body) { return this; } };
+    
+    await productController.createProduct({ body: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Product, 'find', () => { throw new Error('DB Error'); });
+    await productController.getProducts({ query: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Product, 'findById', async () => { throw new Error('DB Error'); });
+    await productController.getProductById({ params: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Product, 'findByIdAndUpdate', async () => { throw new Error('DB Error'); });
+    await productController.updateProduct({ params: {}, body: {} }, res);
+    assert.strictEqual(statusCode, 500);
+    
+    mock.method(Product, 'findByIdAndDelete', async () => { throw new Error('DB Error'); });
+    await productController.deleteProduct({ params: {} }, res);
+    assert.strictEqual(statusCode, 500);
 });
