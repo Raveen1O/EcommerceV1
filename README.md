@@ -26,7 +26,7 @@ Beyond standard CRUD operations, this project employs several advanced features 
 
 ---
 
-## 🏗️ Infrastructure as Code: Terraform
+##  Infrastructure as Code: Terraform
 
 To ensure our infrastructure is reproducible, version-controlled, and consistent, we utilize **Terraform** (`/terraform` directory) to provision and manage our observability and monitoring stack.
 
