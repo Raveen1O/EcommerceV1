@@ -1,4 +1,4 @@
-# E-Commerce Platform Architecture
+# LUMINA Architecture
 
 Welcome to the E-Commerce Platform! This README provides a comprehensive overview of the architecture, key functionalities, deployment strategies, and observability tools employed in this project.
 
