@@ -2,7 +2,7 @@
 
 Welcome to the E-Commerce Platform! This README provides a comprehensive overview of the architecture, key functionalities, deployment strategies, and observability tools employed in this project.
 
-## 🏗️ Architecture Diagram
+##  Architecture Diagram
 
 ```mermaid
 graph TD
