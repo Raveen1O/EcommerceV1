@@ -6,14 +6,12 @@ Welcome to the E-Commerce Platform! This README provides a comprehensive overvie
 
 ```mermaid
 graph TD
-    %% Client & CDN
     Client[Client Browser]
     CloudFront[AWS CloudFront]
     S3[AWS S3 Bucket<br>Frontend Host]
     
     %% Gateway
     APIGateway[API Gateway / Router]
-
     %% Microservices (Lambdas)
     subgraph Microservices [AWS Lambda Functions]
         ProductService[Product Service]
@@ -23,19 +21,12 @@ graph TD
         InventoryService[Inventory Consumer]
         NotificationService[Notification Consumer]
     end
-
-    %% Storage & Database
-    subgraph Data [Data & Storage]
-        MongoDB[(MongoDB)]
-        S3Images[AWS S3<br>Product Images]
-    end
-
+    %% Database
+    MongoDB[(MongoDB)]
     %% External AWS Services
-    subgraph Observability [Observability Tools]
-        CloudWatch[AWS CloudWatch<br>Metrics & Alarms]
-        XRay[AWS X-Ray<br>Tracing]
-    end
-
+    CloudWatch[AWS CloudWatch<br>Metrics]
+    XRay[AWS X-Ray<br>Tracing]
+    S3Images[AWS S3<br>Product Images]
     %% Connections
     Client -->|Static Assets| CloudFront
     CloudFront --> S3
@@ -48,15 +39,13 @@ graph TD
     
     OrderService -.->|Events/Queue| InventoryService
     OrderService -.->|Events/Queue| NotificationService
-
     ProductService --> MongoDB
     CartService --> MongoDB
     OrderService --> MongoDB
     PaymentService --> MongoDB
-
     ProductService -->|Presigned URLs| S3Images
-
-    Microservices -.->|Custom Metrics| CloudWatch
+    Microservices -.->|Push Custom Metrics| CloudWatch
+    OrderService -->|Fetch Metrics| CloudWatch
     Microservices -.->|Subsegment Traces| XRay
 ```
 
