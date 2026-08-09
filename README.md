@@ -4,58 +4,8 @@ Welcome to the E-Commerce Platform! This README provides a comprehensive overvie
 
 ##  Architecture Diagram
 
-```mermaid
-graph TD
-    %% Client & CDN
-    Client[Client Browser]
-    CloudFront[AWS CloudFront]
-    S3[AWS S3 Bucket<br>Frontend Host]
-    
-    %% Gateway
-    APIGateway[API Gateway / Router]
+<img width="1535" height="1024" alt="lumina_architecture" src="https://github.com/user-attachments/assets/0825eefa-958b-4930-a7ca-f78201381e01" />
 
-    %% Microservices (Lambdas)
-    subgraph Microservices [AWS Lambda Functions]
-        ProductService[Product Service]
-        CartService[Cart Service]
-        OrderService[Order Service]
-        PaymentService[Payment Service]
-        InventoryService[Inventory Consumer]
-        NotificationService[Notification Consumer]
-    end
-
-    %% Database
-    MongoDB[(MongoDB)]
-
-    %% External AWS Services
-    CloudWatch[AWS CloudWatch<br>Metrics]
-    XRay[AWS X-Ray<br>Tracing]
-    S3Images[AWS S3<br>Product Images]
-
-    %% Connections
-    Client -->|Static Assets| CloudFront
-    CloudFront --> S3
-    
-    Client -->|API Requests| APIGateway
-    APIGateway --> ProductService
-    APIGateway --> CartService
-    APIGateway --> OrderService
-    APIGateway --> PaymentService
-    
-    OrderService -.->|Events/Queue| InventoryService
-    OrderService -.->|Events/Queue| NotificationService
-
-    ProductService --> MongoDB
-    CartService --> MongoDB
-    OrderService --> MongoDB
-    PaymentService --> MongoDB
-
-    ProductService -->|Presigned URLs| S3Images
-
-    Microservices -.->|Push Custom Metrics| CloudWatch
-    OrderService -->|Fetch Metrics| CloudWatch
-    Microservices -.->|Subsegment Traces| XRay
-```
 
 ### Architecture Overview
 The application is built using a modern serverless microservices architecture:
