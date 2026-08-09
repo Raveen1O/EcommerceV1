@@ -1,6 +1,16 @@
 const { test, mock } = require('node:test');
 const assert = require('node:assert');
 
+const Module = require('node:module');
+
+const originalLoad = Module._load;
+Module._load = function(request, parent, isMain) {
+    if (request === '@aws-sdk/s3-request-presigner') {
+        return { getSignedUrl: mock.fn(async () => 'https://mock-signed-url.com') };
+    }
+    return originalLoad.apply(this, arguments);
+};
+
 // Mock dependencies
 const Product = require('../src/models/Product');
 
