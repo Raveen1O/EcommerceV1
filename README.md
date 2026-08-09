@@ -66,7 +66,7 @@ The application is built using a modern serverless microservices architecture:
 
 ---
 
-## ✨ Additional Functionalities
+##  Additional Functionalities
 
 Beyond standard CRUD operations, this project employs several advanced features to enhance performance and user experience:
 
@@ -76,7 +76,7 @@ Beyond standard CRUD operations, this project employs several advanced features 
 
 ---
 
-## 🚀 CI/CD Pipeline
+##  CI/CD Pipeline
 
 The project utilizes GitHub Actions (`.github/workflows/ci_cd.yml`) for robust Continuous Integration and Continuous Deployment. 
 
@@ -89,7 +89,7 @@ The project utilizes GitHub Actions (`.github/workflows/ci_cd.yml`) for robust C
 
 ---
 
-## 🔍 Observability: AWS X-Ray Tracing
+##  Observability: AWS X-Ray Tracing
 
 In this architecture, AWS X-Ray is instrumented directly within the application code rather than relying solely on the active tracing toggle in the AWS Lambda configuration. 
 
@@ -103,7 +103,7 @@ This deeper insight is invaluable for profiling bottlenecks and debugging comple
 
 ---
 
-## 📈 Business Metrics
+##  Business Metrics
 
 Data-driven decisions are powered by tracking custom business metrics, prominently **Checkout Success Rate** and **Cart Abandonment Rate**.
 
