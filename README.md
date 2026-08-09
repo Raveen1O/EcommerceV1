@@ -24,13 +24,17 @@ graph TD
         NotificationService[Notification Consumer]
     end
 
-    %% Database
-    MongoDB[(MongoDB)]
+    %% Storage & Database
+    subgraph Data [Data & Storage]
+        MongoDB[(MongoDB)]
+        S3Images[AWS S3<br>Product Images]
+    end
 
     %% External AWS Services
-    CloudWatch[AWS CloudWatch<br>Metrics]
-    XRay[AWS X-Ray<br>Tracing]
-    S3Images[AWS S3<br>Product Images]
+    subgraph Observability [Observability Tools]
+        CloudWatch[AWS CloudWatch<br>Metrics & Alarms]
+        XRay[AWS X-Ray<br>Tracing]
+    end
 
     %% Connections
     Client -->|Static Assets| CloudFront
@@ -52,8 +56,7 @@ graph TD
 
     ProductService -->|Presigned URLs| S3Images
 
-    Microservices -.->|Push Custom Metrics| CloudWatch
-    OrderService -->|Fetch Metrics| CloudWatch
+    Microservices -.->|Custom Metrics| CloudWatch
     Microservices -.->|Subsegment Traces| XRay
 ```
 
@@ -89,7 +92,7 @@ The project utilizes GitHub Actions (`.github/workflows/ci_cd.yml`) for robust C
 
 ---
 
-##  Observability: AWS X-Ray Tracing
+##  Observability: AWS X-Ray Tracing & CloudWatch
 
 In this architecture, AWS X-Ray is instrumented directly within the application code rather than relying solely on the active tracing toggle in the AWS Lambda configuration. 
 
@@ -100,6 +103,25 @@ By importing the `aws-xray-sdk` and instrumenting the Express.js app inside the 
 - Database queries.
 - Downstream HTTP calls to other services or 3rd-party APIs.
 This deeper insight is invaluable for profiling bottlenecks and debugging complex distributed requests.
+
+### CloudWatch Alarms
+To proactively monitor the health and performance of the platform, we have configured specific AWS CloudWatch Alarms. *(Note: The thresholds below are deliberately lowered for testing and showcasing purposes.)*
+- **API Gateway Latency**: Triggers if latency `> 2000ms` within a 1-minute period.
+- **API Gateway 5xx Errors**: Triggers if there are `> 2` errors within a 1-minute period.
+- **Revenue KPI**: Triggers if revenue is `< $500` within a 1-minute period.
+- **Cart Abandonment Rate**: Triggers if the rate is `> 40%` within a 1-minute period.
+- **Checkout Success Rate**: Triggers if the rate is `< 80%` within a 1-minute period.
+- **Order Lambda Errors (4xx & 5xx)**: Triggers if there is `> 1` error within a 1-minute period.
+
+### Structured Logging
+When critical actions fail (e.g., a checkout attempt in the `OrderService`), the system generates rich **structured logs**. Instead of just logging a generic error message, the Lambda outputs a comprehensive JSON log that includes:
+- `user_id`: To identify who experienced the issue.
+- `trace_id`: To seamlessly jump from the log to the exact AWS X-Ray trace.
+- `cart_value` & `payment_method`: For business context on the failed transaction.
+- `duration_ms`: To see if the failure was a timeout or a fast failure.
+- `status` and `error`: The explicit failure reason.
+
+These structured logs can later be easily parsed, queried, and visualized using tools like CloudWatch Logs Insights.
 
 ---
 
