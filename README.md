@@ -26,6 +26,17 @@ Beyond standard CRUD operations, this project employs several advanced features 
 
 ---
 
+## 🏗️ Infrastructure as Code: Terraform
+
+To ensure our infrastructure is reproducible, version-controlled, and consistent, we utilize **Terraform** (`/terraform` directory) to provision and manage our observability and monitoring stack.
+
+By declaring our infrastructure as code, we can automatically stand up:
+- **CloudWatch Dashboards** (`cloudwatch.tf`): Centralized monitoring visualizations.
+- **CloudWatch Alarms** (`alarms.tf`): Automated alerts for system health and thresholds.
+- **IAM Policies** (`iam.tf`): Secure, least-privilege roles for our services to interact with AWS resources.
+
+---
+
 ##  CI/CD Pipeline
 
 The project utilizes GitHub Actions (`.github/workflows/ci_cd.yml`) for robust Continuous Integration and Continuous Deployment. 
@@ -59,6 +70,13 @@ To proactively monitor the health and performance of the platform, we have confi
 - **Cart Abandonment Rate**: Triggers if the rate is `> 40%` within a 1-minute period.
 - **Checkout Success Rate**: Triggers if the rate is `< 80%` within a 1-minute period.
 - **Order Lambda Errors (4xx & 5xx)**: Triggers if there is `> 1` error within a 1-minute period.
+
+### CloudWatch Dashboard
+Using Terraform, we have provisioned a comprehensive CloudWatch Dashboard (`Raveen-cloudwatch-dashboard`) that serves as a single pane of glass for the entire system. It visualizes:
+- **API Gateway**: Overall request counts, 4xx/5xx error rates, and average latency.
+- **Cognito & CloudFront**: Successful user sign-ins and global traffic/error rates.
+- **Messaging (SNS/SQS)**: Published payment messages, failed notifications, and queue visibility (messages in-flight vs processing).
+- **Lambda Microservices**: Individual widgets for each service (Product, Cart, Order, Payment, Inventory, Notification) tracking total invocations, errors, throttles, and execution duration.
 
 ### Structured Logging
 When critical actions fail (e.g., a checkout attempt in the `OrderService`), the system generates rich **structured logs**. Instead of just logging a generic error message, the Lambda outputs a comprehensive JSON log that includes:
