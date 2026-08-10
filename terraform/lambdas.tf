@@ -17,7 +17,7 @@ resource "aws_lambda_function" "email_consumer_lambda" {
 
   environment {
     variables = {
-      EMAIL_PASS      = "mbwb ebrd qibt utya"
+      EMAIL_PASS      = "bupn meqn fuix fhqd"
       EMAIL_USER      = "raveenpbksr2@gmail.com"
       RECIPIENT_EMAIL = "raveenpbksr2@gmail.com"
     }
